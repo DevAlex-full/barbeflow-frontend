@@ -39,6 +39,11 @@ export default function ClientPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBarbershop, setSelectedBarbershop] = useState<any>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [cityFilter, setCityFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({
@@ -75,7 +80,16 @@ export default function ClientPage() {
   const loadBarbershops = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:4000/api/public/barbershops');
+      let url = 'http://localhost:4000/api/public/barbershops';
+      const params = new URLSearchParams();
+      
+      if (searchTerm) params.append('search', searchTerm);
+      if (cityFilter) params.append('city', cityFilter);
+      if (stateFilter) params.append('state', stateFilter);
+      
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       setBarbershops(data);
     } catch (error) {
@@ -232,6 +246,53 @@ export default function ClientPage() {
     setAvailableTimes([]);
   };
 
+  const handleEnableLocation = () => {
+    if (navigator.geolocation) {
+      setLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setLocationEnabled(true);
+          setLoading(false);
+          alert('Localização habilitada! Mostrando barbearias próximas.');
+        },
+        (error) => {
+          setLoading(false);
+          alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
+          console.error('Erro de geolocalização:', error);
+        }
+      );
+    } else {
+      alert('Seu navegador não suporta geolocalização.');
+    }
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Raio da Terra em km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const handleSearch = () => {
+    loadBarbershops();
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCityFilter('');
+    setStateFilter('');
+    loadBarbershops();
+  };
+
   const filteredBarbershops = barbershops.filter(b =>
     b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.city?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -248,10 +309,10 @@ export default function ClientPage() {
           </div>
           
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="/sou-cliente" className="hover:text-blue-400 transition">Início</a>
+            <a href="/buscar" className="hover:text-blue-400 transition">Início</a>
             {isAuthenticated && (
               <>
-                <a href="/sou-cliente" className="hover:text-blue-400 transition">Buscar</a>
+                <a href="/buscar" className="hover:text-blue-400 transition">Buscar</a>
                 <a href="/meus-agendamentos" className="hover:text-blue-400 transition">Meus Agendamentos</a>
               </>
             )}
@@ -284,16 +345,67 @@ export default function ClientPage() {
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
           
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Encontre um estabelecimento"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => !isAuthenticated && setShowAuthModal(true)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
-            />
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative max-w-2xl mx-auto">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Encontre um estabelecimento"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => !isAuthenticated && setShowAuthModal(true)}
+                onKeyPress={(e) => e.key === 'Enter' && isAuthenticated && handleSearch()}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
+              />
+            </div>
+
+            {/* Filters */}
+            {isAuthenticated && (
+              <div className="max-w-2xl mx-auto">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="text-sm text-blue-400 hover:text-blue-300 mb-3"
+                >
+                  {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                </button>
+                
+                {showFilters && (
+                  <div className="bg-gray-900 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Cidade"
+                        value={cityFilter}
+                        onChange={(e) => setCityFilter(e.target.value)}
+                        className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Estado (ex: SP)"
+                        value={stateFilter}
+                        onChange={(e) => setStateFilter(e.target.value)}
+                        className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSearch}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
+                      >
+                        Buscar
+                      </button>
+                      <button
+                        onClick={clearFilters}
+                        className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -312,6 +424,12 @@ export default function ClientPage() {
                 <p className="text-gray-400 text-sm mb-6">
                   Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
                 </p>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition"
+                >
+                  Fazer login para habilitar
+                </button>
               </div>
 
               <div className="bg-gray-900 rounded-xl p-8 text-center max-w-md mx-auto">
@@ -329,27 +447,72 @@ export default function ClientPage() {
                 </button>
               </div>
             </>
-          ) : loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            </div>
-          ) : filteredBarbershops.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBarbershops.map((barbershop) => (
-                <div key={barbershop.id} className="bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition cursor-pointer" onClick={() => openBarbershopDetails(barbershop)}>
-                  <h3 className="text-xl font-bold mb-2">{barbershop.name}</h3>
-                  <p className="text-gray-400 text-sm mb-2">{barbershop.city}, {barbershop.state}</p>
-                  <p className="text-gray-500 text-sm mb-4">{barbershop.phone}</p>
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition">
-                    Agendar
+          ) : (
+            <>
+              {/* Location Enable Card */}
+              {!locationEnabled && (
+                <div className="bg-gray-900 rounded-xl p-8 mb-8 text-center max-w-md mx-auto">
+                  <div className="mb-6">
+                    <MapPin className="mx-auto text-red-500" size={64} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">Habilitar localização</h3>
+                  <p className="text-gray-400 text-sm mb-6">
+                    Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
+                  </p>
+                  <button
+                    onClick={handleEnableLocation}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition"
+                  >
+                    Habilitar localização
                   </button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-900 rounded-xl p-8 text-center">
-              <p className="text-gray-400">Nenhuma barbearia encontrada</p>
-            </div>
+              )}
+
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+              ) : filteredBarbershops.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredBarbershops.map((barbershop) => (
+                    <div key={barbershop.id} className="bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition cursor-pointer" onClick={() => openBarbershopDetails(barbershop)}>
+                      {barbershop.logo && (
+                        <div className="mb-4">
+                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-32 object-cover rounded-lg" />
+                        </div>
+                      )}
+                      <h3 className="text-xl font-bold mb-2">{barbershop.name}</h3>
+                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                        <MapPin size={16} />
+                        <span>{barbershop.city}, {barbershop.state}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                        <Phone size={16} />
+                        <span>{barbershop.phone}</span>
+                      </div>
+                      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition font-medium">
+                        Ver detalhes e agendar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-xl p-8 text-center">
+                  <div className="mb-6">
+                    <div className="mx-auto w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center">
+                      <Search className="text-gray-600" size={40} />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">Nenhuma barbearia encontrada</h3>
+                  <p className="text-gray-400 text-sm mb-6">
+                    Tente ajustar seus filtros ou buscar por outra região
+                  </p>
+                  <button onClick={clearFilters} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition">
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -371,9 +534,9 @@ export default function ClientPage() {
             <div>
               <h4 className="font-bold mb-4">Acesso rápido</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/sou-cliente" className="hover:text-white transition">Início</a></li>
-                <li><a href="/sou-cliente" className="hover:text-white transition">Encontrar estabelecimentos</a></li>
-                <li><a href="/meus-agendamentos" className="hover:text-white transition">Meus agendamentos</a></li>
+                <li><a href="#" className="hover:text-white transition">Início</a></li>
+                <li><a href="#" className="hover:text-white transition">Encontrar estabelecimentos</a></li>
+                <li><a href="#" className="hover:text-white transition">Meus agendamentos</a></li>
                 <li><a href="#" className="hover:text-white transition">Favoritos</a></li>
               </ul>
             </div>
