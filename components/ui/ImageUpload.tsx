@@ -26,13 +26,11 @@ export default function ImageUpload({
 
     const file = acceptedFiles[0];
     
-    // Validação de tamanho
     if (file.size > 5 * 1024 * 1024) {
       setError('Arquivo muito grande. Máximo 5MB.');
       return;
     }
 
-    // Preview local
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     setError('');
@@ -78,7 +76,6 @@ export default function ImageUpload({
         {label}
       </label>
 
-      {/* Preview */}
       {preview && (
         <div className="flex justify-center mb-4">
           <img 
@@ -91,7 +88,6 @@ export default function ImageUpload({
         </div>
       )}
 
-      {/* Dropzone */}
       <div
         {...getRootProps()}
         className={`
