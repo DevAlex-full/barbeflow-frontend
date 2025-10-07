@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Plus, Calendar as CalendarIcon, Clock, User, Scissors, ChevronLeft, ChevronRight, Edit, Trash2, Check, X } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock, User, Scissors, ChevronLeft, ChevronRight, Edit, Trash2, Check, X, Bell } from 'lucide-react';
 import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Bell } from 'lucide-react';
 
 interface Appointment {
   id: string;
@@ -39,6 +38,7 @@ interface Service {
   name: string;
   price: number;
   duration: number;
+  active?: boolean;
 }
 
 interface Barber {
@@ -67,10 +67,12 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     loadAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
   async function loadInitialData() {
@@ -82,7 +84,7 @@ export default function AgendamentosPage() {
       ]);
 
       setCustomers(customersRes.data);
-      setServices(servicesRes.data.filter((s: Service) => s.active));
+      setServices(servicesRes.data.filter((s: Service) => s.active !== false));
       setBarbers(barbershopRes.data.users || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -101,12 +103,12 @@ export default function AgendamentosPage() {
     }
   }
 
-  async function sendNotification(appointmentId: string, type: 'reminder' | 'confirmation') {
+  async function sendNotification(appointmentId: string) {
     try {
-      await api.post(`/notifications/send-${type}/${appointmentId}`);
-      alert('Notificação enviada com sucesso!');
+      await api.post(`/notifications/send-email-reminder/${appointmentId}`);
+      alert('Lembrete enviado com sucesso!');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Erro ao enviar notificação');
+      alert(error.response?.data?.error || 'Erro ao enviar lembrete');
     }
   }
 
@@ -208,7 +210,7 @@ export default function AgendamentosPage() {
     isSameDay(new Date(apt.date), selectedDate)
   ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const statusColors: any = {
+  const statusColors: Record<string, { bg: string; text: string; label: string }> = {
     scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
     confirmed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Confirmado' },
     completed: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Concluído' },
@@ -432,7 +434,7 @@ export default function AgendamentosPage() {
                       </div>
 
                       {appointment.notes && (
-                        <p className="mt-2 text-sm text-gray-600 italic">"{appointment.notes}"</p>
+                        <p className="mt-2 text-sm text-gray-600 italic">&quot;{appointment.notes}&quot;</p>
                       )}
                     </div>
 
@@ -460,6 +462,13 @@ export default function AgendamentosPage() {
                             <Scissors className="w-5 h-5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => sendNotification(appointment.id)}
+                          className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
+                          title="Enviar Lembrete"
+                        >
+                          <Bell className="w-5 h-5" />
+                        </button>
                         <button
                           onClick={() => openModal(appointment)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -613,13 +622,6 @@ export default function AgendamentosPage() {
                   className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition"
                 >
                   {editingAppointment ? 'Atualizar' : 'Agendar'}
-                </button>
-                <button
-                  onClick={() => sendNotification(appointment.id, 'reminder')}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
-                  title="Enviar Lembrete"
-                >
-                  <Bell className="w-5 h-5" />
                 </button>
               </div>
             </form>
