@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User } from 'lucide-react';
+import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User, Phone } from 'lucide-react';
 
 interface Barbershop {
   id: string;
@@ -309,10 +309,10 @@ export default function ClientPage() {
           </div>
           
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="/buscar" className="hover:text-blue-400 transition">Início</a>
+            <a href="/sou-cliente" className="hover:text-blue-400 transition">Início</a>
             {isAuthenticated && (
               <>
-                <a href="/buscar" className="hover:text-blue-400 transition">Buscar</a>
+                <a href="/sou-cliente" className="hover:text-blue-400 transition">Buscar</a>
                 <a href="/meus-agendamentos" className="hover:text-blue-400 transition">Meus Agendamentos</a>
               </>
             )}
