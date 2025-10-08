@@ -11,7 +11,7 @@ export default function LandingPage() {
         <nav className="max-w-[1400px] mx-auto px-8 py-3 flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <Image src="/logo-barberflow.png" alt="BarberFlow" width={160} height={40} className="h-10 w-auto" />
+            <Image src="/Logo BarberFlow com Estilo Distress.png" alt="BarberFlow" width={160} height={40} className="h-10 w-auto" />
           </div>
 
           {/* Menu */}
