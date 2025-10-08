@@ -19,7 +19,7 @@ export default function LandingPage() {
             {/* Logo */}
             <div className="flex items-center">
               <Image 
-                src="/Logo BarberFlow com Estilo Distress.png" 
+                src="/Logo.png" 
                 alt="BarberFlow" 
                 width={180} 
                 height={45} 
@@ -482,7 +482,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
               <Image 
-                src="/Logo BarberFlow com Estilo Distress.png" 
+                src="/Logo.png" 
                 alt="BarberFlow" 
                 width={200} 
                 height={50} 
