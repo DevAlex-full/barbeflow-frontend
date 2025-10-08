@@ -55,7 +55,7 @@ export default function MeusAgendamentosPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('@barberFlow:client:token');
-      const response = await fetch('http://localhost:4000/api/client/appointments/my-appointments', {
+      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments/my-appointments', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,7 +78,7 @@ export default function MeusAgendamentosPage() {
 
     try {
       const token = localStorage.getItem('@barberFlow:client:token');
-      const response = await fetch(`http://localhost:4000/api/client/appointments/${selectedAppointment.id}/cancel`, {
+      const response = await fetch(`https://barberflow-back-end.onrender.com/api/client/appointments/${selectedAppointment.id}/cancel`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
