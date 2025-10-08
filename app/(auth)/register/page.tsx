@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Scissors } from 'lucide-react';
+import Image from 'next/image';
 
 export default function RegisterPage() {
   const { signUp } = useAuth();
@@ -33,100 +33,138 @@ export default function RegisterPage() {
     try {
       await signUp(formData);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4 rounded-full mb-4">
-              <Scissors className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">Criar Conta</h1>
-            <p className="text-gray-600 mt-2">Cadastre sua barbearia agora</p>
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 py-12 relative"
+      style={{
+        backgroundImage: 'url(/fundo2.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay escuro para melhor legibilidade */}
+      <div className="absolute inset-0 bg-black/50"></div>
+
+      {/* Card de Registro */}
+      <div className="relative z-10 w-full max-w-3xl">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/Logo.png"
+              alt="BarberFlow"
+              width={250}
+              height={70}
+              className="h-16 w-auto"
+              priority
+            />
           </div>
 
+          {/* Título */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Criar Conta</h1>
+            <p className="text-gray-600">Cadastre sua barbearia e comece agora</p>
+          </div>
+
+          {/* Mensagem de Erro */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded mb-6 text-sm">
+              <p className="font-medium">Erro ao criar conta</p>
+              <p className="text-xs mt-1">{error}</p>
             </div>
           )}
 
+          {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Seu Nome
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
-              </div>
+            {/* Dados Pessoais */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b-2 border-purple-600">
+                Seus Dados
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Completo *
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="João Silva"
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
-              </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    E-mail *
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="seu@email.com"
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Senha
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
-              </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Senha *
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Telefone *
+                  </label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados da Barbearia</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Dados da Barbearia */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b-2 border-purple-600">
+                Dados da Barbearia
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="barbershopName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome da Barbearia
+                    Nome da Barbearia *
                   </label>
                   <input
                     id="barbershopName"
@@ -135,13 +173,14 @@ export default function RegisterPage() {
                     value={formData.barbershopName}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="Barbearia Exemplo"
                   />
                 </div>
 
                 <div>
                   <label htmlFor="barbershopPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Telefone da Barbearia
+                    Telefone da Barbearia *
                   </label>
                   <input
                     id="barbershopPhone"
@@ -150,29 +189,60 @@ export default function RegisterPage() {
                     value={formData.barbershopPhone}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-gray-700"
+                    placeholder="(11) 3333-3333"
                   />
                 </div>
               </div>
             </div>
 
+            {/* Termos */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700 text-center">
+                Ao criar sua conta, você concorda com nossos{' '}
+                <Link href="/termos" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                  Termos de Uso
+                </Link>
+                {' '}e{' '}
+                <Link href="/privacidade" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                  Política de Privacidade
+                </Link>
+              </p>
+            </div>
+
+            {/* Botão Criar Conta */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition duration-200 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white py-3.5 rounded-lg font-semibold text-base transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
-              {loading ? 'Criando conta...' : 'Criar Conta'}
+              {loading ? 'CRIANDO CONTA...' : 'CRIAR CONTA GRÁTIS'}
             </button>
+
+            {/* Badge Teste Grátis */}
+            <div className="text-center">
+              <span className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full">
+                🎉 30 dias de teste grátis
+              </span>
+            </div>
           </form>
 
-          <div className="mt-6 text-center">
+          {/* Link para Login */}
+          <div className="mt-8 text-center">
             <p className="text-gray-600">
               Já tem uma conta?{' '}
               <Link href="/login" className="text-purple-600 hover:text-purple-700 font-semibold">
-                Faça login
+                Fazer Login
               </Link>
             </p>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-white text-xs drop-shadow-lg">
+            © 2025 BarberFlow. Todos os direitos reservados.
+          </p>
         </div>
       </div>
     </div>
