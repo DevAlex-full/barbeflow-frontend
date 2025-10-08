@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'BarberPro - Sistema de Gestão para Barbearias',
+  title: 'BarberFlow',
   description: 'Gerencie sua barbearia de forma profissional',
 };
 
