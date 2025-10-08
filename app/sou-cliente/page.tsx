@@ -210,7 +210,7 @@ export default function ClientPage() {
 
     try {
       const token = localStorage.getItem('@barberFlow:client:token');
-      const response = await fetch('http://localhost:4000/api/client/appointments', {
+      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
