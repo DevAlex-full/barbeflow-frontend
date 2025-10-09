@@ -6,9 +6,101 @@ import Image from 'next/image';
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pricingPeriod, setPricingPeriod] = useState('anual');
+  const [pricingPeriod, setPricingPeriod] = useState<'monthly' | 'semiannual' | 'annual'>('annual');
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+
+  // ✅ Dados dos planos baseados no período selecionado
+  const getPlansData = () => {
+    const plans = [
+      {
+        id: 'basic',
+        prof: '1 Profissional',
+        prices: {
+          monthly: 34.90,
+          semiannual: 177.99,
+          annual: 418.80
+        },
+        oldPrices: {
+          monthly: 34.90,
+          semiannual: 209.40, // 34.90 * 6
+          annual: 586.80 // 34.90 * 12
+        }
+      },
+      {
+        id: 'standard',
+        prof: '2 a 5 Profissionais',
+        prices: {
+          monthly: 48.90,
+          semiannual: 249.51,
+          annual: 586.80
+        },
+        oldPrices: {
+          monthly: 48.90,
+          semiannual: 293.40, // 48.90 * 6
+          annual: 838.80 // 48.90 * 12
+        },
+        popular: true
+      },
+      {
+        id: 'premium',
+        prof: '6 a 15 Profissionais',
+        prices: {
+          monthly: 75.60,
+          semiannual: 385.56,
+          annual: 907.20
+        },
+        oldPrices: {
+          monthly: 75.60,
+          semiannual: 453.60, // 75.60 * 6
+          annual: 1296.00 // 75.60 * 12
+        }
+      },
+      {
+        id: 'enterprise',
+        prof: '+15 Profissionais',
+        prices: {
+          monthly: 102.80,
+          semiannual: 524.28,
+          annual: 1233.60
+        },
+        oldPrices: {
+          monthly: 102.80,
+          semiannual: 616.80, // 102.80 * 6
+          annual: 1761.60 // 102.80 * 12
+        }
+      }
+    ];
+
+    return plans.map(plan => {
+      const price = plan.prices[pricingPeriod];
+      const oldPrice = plan.oldPrices[pricingPeriod];
+      const monthlyEquivalent = pricingPeriod === 'monthly' 
+        ? price 
+        : price / (pricingPeriod === 'semiannual' ? 6 : 12);
+      
+      let discount = 0;
+      if (pricingPeriod === 'semiannual') discount = 15;
+      if (pricingPeriod === 'annual') discount = 30;
+
+      return {
+        ...plan,
+        displayPrice: price.toFixed(2),
+        displayOldPrice: oldPrice.toFixed(2),
+        displayMonthly: monthlyEquivalent.toFixed(2),
+        discount,
+        savings: (oldPrice - price).toFixed(2)
+      };
+    });
+  };
+
+  const plansData = getPlansData();
+
+  const getPeriodLabel = () => {
+    if (pricingPeriod === 'monthly') return 'Mensal';
+    if (pricingPeriod === 'semiannual') return 'Semestral (6 meses)';
+    return 'Anual (12 meses)';
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -310,9 +402,9 @@ export default function LandingPage() {
           <div className="flex justify-center mb-12 overflow-x-auto pb-4">
             <div className="inline-flex rounded-xl overflow-hidden shadow-lg text-sm">
               <button 
-                onClick={() => setPricingPeriod('anual')}
+                onClick={() => setPricingPeriod('annual')}
                 className={`px-6 md:px-10 py-3 md:py-4 font-bold transition-all ${
-                  pricingPeriod === 'anual' 
+                  pricingPeriod === 'annual' 
                     ? 'bg-purple-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
@@ -321,9 +413,9 @@ export default function LandingPage() {
                 <span className="text-xs font-normal">30% DE DESCONTO</span>
               </button>
               <button 
-                onClick={() => setPricingPeriod('semestral')}
+                onClick={() => setPricingPeriod('semiannual')}
                 className={`px-6 md:px-10 py-3 md:py-4 font-bold transition-all ${
-                  pricingPeriod === 'semestral' 
+                  pricingPeriod === 'semiannual' 
                     ? 'bg-purple-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
@@ -332,9 +424,9 @@ export default function LandingPage() {
                 <span className="text-xs font-normal">15% DE DESCONTO</span>
               </button>
               <button 
-                onClick={() => setPricingPeriod('mensal')}
+                onClick={() => setPricingPeriod('monthly')}
                 className={`px-6 md:px-10 py-3 md:py-4 font-bold transition-all ${
-                  pricingPeriod === 'mensal' 
+                  pricingPeriod === 'monthly' 
                     ? 'bg-purple-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
@@ -346,14 +438,9 @@ export default function LandingPage() {
 
           {/* Cards de Preços */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {[
-              { prof: "1 Profissional", price: "34,90", old: "48,90", total: "418,80", popular: false },
-              { prof: "2 a 5 Profissionais", price: "48,90", old: "69,90", total: "586,80", popular: true },
-              { prof: "6 a 15 Profissionais", price: "75,60", old: "108,00", total: "907,20", popular: false },
-              { prof: "+15 Profissionais", price: "102,80", old: "146,90", total: "1233,60", popular: false },
-            ].map((plan, idx) => (
+            {plansData.map((plan) => (
               <div 
-                key={idx} 
+                key={plan.id} 
                 className={`bg-white rounded-2xl shadow-xl overflow-hidden relative hover:scale-105 transition-all duration-300 ${
                   plan.popular ? 'ring-4 ring-purple-500' : ''
                 }`}
@@ -363,25 +450,48 @@ export default function LandingPage() {
                     MAIS POPULAR
                   </div>
                 )}
-                <div className="absolute top-3 right-3 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full font-bold text-xs shadow-lg">
-                  30% OFF
-                </div>
+                {plan.discount > 0 && (
+                  <div className="absolute top-3 right-3 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full font-bold text-xs shadow-lg">
+                    {plan.discount}% OFF
+                  </div>
+                )}
                 <div className="h-2 bg-gradient-to-r from-purple-600 to-purple-800"></div>
                 <div className="p-6 text-center">
                   <p className="text-gray-600 font-semibold mb-4">{plan.prof}</p>
-                  <div className="mb-2">
-                    <span className="text-gray-500 text-sm">R$</span>
-                    <span className="text-4xl md:text-5xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-500 text-sm">/mês</span>
-                  </div>
-                  <p className="text-gray-400 line-through text-sm mb-3">R$ {plan.old}/mês</p>
-                  <p className="text-gray-600 text-sm mb-6">Valor Total: R$ {plan.total}</p>
-                  <Link href="/register">
+                  
+                  {pricingPeriod === 'monthly' ? (
+                    <>
+                      <div className="mb-2">
+                        <span className="text-gray-500 text-sm">R$</span>
+                        <span className="text-4xl md:text-5xl font-bold text-gray-900">{plan.displayMonthly}</span>
+                        <span className="text-gray-500 text-sm">/mês</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-2">
+                        <span className="text-gray-500 text-sm">R$</span>
+                        <span className="text-4xl md:text-5xl font-bold text-gray-900">{plan.displayMonthly}</span>
+                        <span className="text-gray-500 text-sm">/mês</span>
+                      </div>
+                      <p className="text-gray-400 line-through text-sm mb-1">R$ {plan.displayOldPrice}</p>
+                      <p className="text-gray-600 text-sm mb-3">
+                        Pagamento único: <span className="font-bold text-purple-600">R$ {plan.displayPrice}</span>
+                      </p>
+                      <p className="text-green-600 text-xs font-semibold mb-4">
+                        Economize R$ {plan.savings}
+                      </p>
+                    </>
+                  )}
+                  
+                  <Link href={`/planos?plan=${plan.id}&period=${pricingPeriod}`}>
                     <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white rounded-xl font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-xl">
                       CONTRATAR AGORA
                     </button>
                   </Link>
-                  <p className="text-xs text-gray-500 mt-3">Em até 12x sem juros no cartão</p>
+                  <p className="text-xs text-gray-500 mt-3">
+                    {pricingPeriod === 'monthly' ? 'Renovação automática mensal' : `Pagamento único - ${getPeriodLabel()}`}
+                  </p>
                 </div>
               </div>
             ))}
@@ -453,8 +563,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-
 
       {/* Final CTA */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
