@@ -347,10 +347,10 @@ export default function LandingPage() {
           {/* Cards de Preços */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
-              { prof: "1 Profissional", price: "48,90", old: "69,90", total: "586,80", popular: false },
-              { prof: "2 a 5 Profissionais", price: "69,90", old: "99,90", total: "838,80", popular: true },
-              { prof: "6 a 15 Profissionais", price: "108,00", old: "154,50", total: "1296,00", popular: false },
-              { prof: "+15 Profissionais", price: "146,90", old: "209,90", total: "1762,80", popular: false },
+              { prof: "1 Profissional", price: "34,90", old: "48,90", total: "418,80", popular: false },
+              { prof: "2 a 5 Profissionais", price: "48,90", old: "69,90", total: "586,80", popular: true },
+              { prof: "6 a 15 Profissionais", price: "75,60", old: "108,00", total: "907,20", popular: false },
+              { prof: "+15 Profissionais", price: "102,80", old: "146,90", total: "1233,60", popular: false },
             ].map((plan, idx) => (
               <div 
                 key={idx} 
