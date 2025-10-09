@@ -60,10 +60,8 @@ export default function PlansPage() {
   async function loadData() {
     try {
       const [plansRes, subRes] = await Promise.all([
-        api.get('/subscriptions/plans'),        // ✅ Corrigido: plural
-        api.get('/subscriptions/current'),      // ✅ Corrigido: plural
-        api.post('/payment/create-preference'),
-        api.post('/payment/calculate-price')  
+        api.get('/subscriptions/plans'),        // ✅ PLURAL
+        api.get('/subscriptions/current')       // ✅ PLURAL
       ]);
 
       setPlans(plansRes.data);
