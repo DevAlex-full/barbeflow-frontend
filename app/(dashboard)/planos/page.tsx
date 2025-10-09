@@ -60,8 +60,10 @@ export default function PlansPage() {
   async function loadData() {
     try {
       const [plansRes, subRes] = await Promise.all([
-        api.get('/subscription/plans'),
-        api.get('/subscription/current')
+        api.get('/subscriptions/plans'),        // ✅ Corrigido: plural
+        api.get('/subscriptions/current'),      // ✅ Corrigido: plural
+        api.post('/payment/create-preference'),
+        api.post('/payment/calculate-price')  
       ]);
 
       setPlans(plansRes.data);
@@ -79,13 +81,37 @@ export default function PlansPage() {
 
     for (const planKey of planKeys) {
       try {
-        const { data } = await api.post('/payment/calculate-price', {
+        const { data } = await api.post('/payment/calculate-price', {  // ⚠️ Verificar se existe
           plan: planKey,
           period: selectedPeriod
         });
         newCache[planKey] = data;
       } catch (error) {
         console.error(`Erro ao calcular preço do plano ${planKey}:`, error);
+        // ✅ Fallback: Calcular preço localmente se a rota não existir
+        if (plans && plans[planKey]) {
+          const basePlan = plans[planKey];
+          let price = basePlan.price || 0;
+          let discount = 0;
+          
+          if (selectedPeriod === 'semiannual') {
+            price = price * 6 * 0.85; // 15% desconto
+            discount = 15;
+          } else if (selectedPeriod === 'annual') {
+            price = price * 12 * 0.70; // 30% desconto
+            discount = 30;
+          }
+          
+          newCache[planKey] = {
+            plan: { id: planKey, name: basePlan.name },
+            period: selectedPeriod,
+            price: price,
+            monthlyPrice: basePlan.price || 0,
+            monthlyEquivalent: price / (selectedPeriod === 'monthly' ? 1 : selectedPeriod === 'semiannual' ? 6 : 12),
+            discount: discount,
+            savings: selectedPeriod !== 'monthly' ? (basePlan.price || 0) * (selectedPeriod === 'semiannual' ? 6 : 12) - price : 0
+          };
+        }
       }
     }
 
@@ -97,17 +123,22 @@ export default function PlansPage() {
 
     setProcessingPlan(planId);
     try {
-      // Criar preferência de pagamento
+      // ✅ Criar preferência de pagamento
       const { data } = await api.post('/payment/create-preference', {
         plan: planId,
         period: selectedPeriod
       });
 
       // Redirecionar para o Mercado Pago
-      window.location.href = data.init_point;
+      if (data.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        throw new Error('Link de pagamento não retornado');
+      }
     } catch (error: any) {
       console.error('Erro ao processar pagamento:', error);
-      alert(error.response?.data?.error || 'Erro ao processar pagamento');
+      const errorMessage = error.response?.data?.error || error.message || 'Erro ao processar pagamento';
+      alert(errorMessage);
       setProcessingPlan(null);
     }
   }
@@ -116,6 +147,21 @@ export default function PlansPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (!plans) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+        <p className="text-gray-600">Erro ao carregar planos. Tente novamente mais tarde.</p>
+        <button
+          onClick={loadData}
+          className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+        >
+          Tentar Novamente
+        </button>
       </div>
     );
   }
@@ -319,9 +365,9 @@ export default function PlansPage() {
                   : `Assinar ${getPeriodLabel()}`}
               </button>
 
-              {selectedPeriod !== 'monthly' && (
+              {selectedPeriod !== 'monthly' && priceInfo && (
                 <p className="text-xs text-center text-gray-500 mt-2">
-                  Pagamento único de R$ {priceInfo?.price.toFixed(2)}
+                  Pagamento único de R$ {priceInfo.price.toFixed(2)}
                 </p>
               )}
             </div>
