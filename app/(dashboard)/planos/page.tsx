@@ -60,8 +60,8 @@ export default function PlansPage() {
   async function loadData() {
     try {
       const [plansRes, subRes] = await Promise.all([
-        api.get('/subscriptions/plans'),        // ✅ PLURAL
-        api.get('/subscriptions/current')       // ✅ PLURAL
+        api.get('/subscriptions/plans'),
+        api.get('/subscriptions/current')
       ]);
 
       setPlans(plansRes.data);
@@ -79,35 +79,39 @@ export default function PlansPage() {
 
     for (const planKey of planKeys) {
       try {
-        const { data } = await api.post('/payment/calculate-price', {  // ⚠️ Verificar se existe
+        const { data } = await api.post('/payment/calculate-price', {
           plan: planKey,
           period: selectedPeriod
         });
         newCache[planKey] = data;
       } catch (error) {
         console.error(`Erro ao calcular preço do plano ${planKey}:`, error);
-        // ✅ Fallback: Calcular preço localmente se a rota não existir
+        
+        // Fallback: Calcular preço localmente
         if (plans && plans[planKey]) {
           const basePlan = plans[planKey];
           let price = basePlan.price || 0;
           let discount = 0;
           
           if (selectedPeriod === 'semiannual') {
-            price = price * 6 * 0.85; // 15% desconto
+            price = price * 6 * 0.85;
             discount = 15;
           } else if (selectedPeriod === 'annual') {
-            price = price * 12 * 0.70; // 30% desconto
+            price = price * 12 * 0.70;
             discount = 30;
           }
+          
+          const monthsInPeriod = selectedPeriod === 'monthly' ? 1 : selectedPeriod === 'semiannual' ? 6 : 12;
+          const fullPrice = (basePlan.price || 0) * monthsInPeriod;
           
           newCache[planKey] = {
             plan: { id: planKey, name: basePlan.name },
             period: selectedPeriod,
-            price: price,
+            price: Number(price.toFixed(2)),
             monthlyPrice: basePlan.price || 0,
-            monthlyEquivalent: price / (selectedPeriod === 'monthly' ? 1 : selectedPeriod === 'semiannual' ? 6 : 12),
+            monthlyEquivalent: Number((price / monthsInPeriod).toFixed(2)),
             discount: discount,
-            savings: selectedPeriod !== 'monthly' ? (basePlan.price || 0) * (selectedPeriod === 'semiannual' ? 6 : 12) - price : 0
+            savings: Number((fullPrice - price).toFixed(2))
           };
         }
       }
@@ -121,13 +125,11 @@ export default function PlansPage() {
 
     setProcessingPlan(planId);
     try {
-      // ✅ Criar preferência de pagamento
       const { data } = await api.post('/payment/create-preference', {
         plan: planId,
         period: selectedPeriod
       });
 
-      // Redirecionar para o Mercado Pago
       if (data.init_point) {
         window.location.href = data.init_point;
       } else {
@@ -272,10 +274,12 @@ export default function PlansPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans && ['basic', 'standard', 'premium', 'enterprise'].map((planKey) => {
           const plan = plans[planKey];
+          if (!plan) return null; // ✅ Proteção adicional
+          
           const priceInfo = priceCache[planKey];
           const Icon = planIcons[planKey];
           const isCurrentPlan = currentSub?.currentPlan.id === planKey;
-          const isPremiumPlan = planKey === 'standard'; // Mais popular
+          const isPremiumPlan = planKey === 'standard';
 
           return (
             <div
@@ -314,16 +318,16 @@ export default function PlansPage() {
                 {priceInfo ? (
                   <div className="mt-4">
                     <div className="text-4xl font-bold text-gray-900">
-                      R$ {priceInfo.price.toFixed(2)}
+                      R$ {priceInfo.price?.toFixed(2) || '0.00'}
                     </div>
                     {selectedPeriod !== 'monthly' && (
                       <div className="text-sm text-gray-500 mt-1">
-                        R$ {priceInfo.monthlyEquivalent.toFixed(2)}/mês
+                        R$ {priceInfo.monthlyEquivalent?.toFixed(2) || '0.00'}/mês
                       </div>
                     )}
                     {priceInfo.savings > 0 && (
                       <div className="text-xs text-green-600 font-semibold mt-1">
-                        Economize R$ {priceInfo.savings.toFixed(2)}
+                        Economize R$ {priceInfo.savings?.toFixed(2) || '0.00'}
                       </div>
                     )}
                   </div>
@@ -363,9 +367,9 @@ export default function PlansPage() {
                   : `Assinar ${getPeriodLabel()}`}
               </button>
 
-              {selectedPeriod !== 'monthly' && priceInfo && (
+              {selectedPeriod !== 'monthly' && priceInfo && !isCurrentPlan && (
                 <p className="text-xs text-center text-gray-500 mt-2">
-                  Pagamento único de R$ {priceInfo.price.toFixed(2)}
+                  Pagamento único de R$ {priceInfo.price?.toFixed(2) || '0.00'}
                 </p>
               )}
             </div>
