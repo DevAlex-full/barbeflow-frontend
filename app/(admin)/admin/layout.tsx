@@ -11,7 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Emails de administradores
   const ADMIN_EMAILS = [
-    'alex.bueno22@hotmail.com',
+    'alex.zila@hotmail.com',
     'appbarberflow@gmail.com'
   ];
 
