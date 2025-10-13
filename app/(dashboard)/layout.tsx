@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -11,9 +11,11 @@ import {
   Scissors, 
   Settings, 
   LogOut,
-  Menu
+  Menu,
+  X
 } from 'lucide-react';
-import { useState } from 'react';
+import { BottomNav, BottomNavSpacer } from '@/components/layout/BottomNav';
+import { cn } from '@/lib/utils/cn';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, barbershop, loading, signOut } = useAuth();
@@ -27,17 +29,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, router]);
 
+  // Fecha menu mobile ao navegar
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -45,24 +50,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/clientes', icon: Users, label: 'Clientes' },
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
     { href: '/planos', icon: Settings, label: 'Planos' },
-    { href: '/configuracoes', icon: Settings, label: 'Configurações' },
   ];
+
+  // Itens do Bottom Nav (4 principais)
+  const bottomNavItems = menuItems.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar Desktop */}
-      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:w-64 bg-white border-r border-gray-200">
+      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:w-64 bg-white border-r border-gray-200 z-30">
         <div className="flex flex-col flex-grow pt-5 overflow-y-auto">
+          {/* Logo */}
           <div className="flex items-center flex-shrink-0 px-4 mb-6">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
               <Scissors className="w-6 h-6 text-white" />
             </div>
             <div className="ml-3">
-              <h2 className="text-lg font-bold text-gray-900">{barbershop?.name}</h2>
-              <p className="text-xs text-gray-500">{user.name}</p>
+              <h2 className="text-lg font-bold text-gray-900 truncate">{barbershop?.name}</h2>
+              <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
 
+          {/* Menu Desktop */}
           <nav className="flex-1 px-2 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -71,19 +80,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition ${
+                  className={cn(
+                    'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition',
                     isActive
                       ? 'bg-purple-50 text-purple-600'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'
-                  }`}
+                  )}
                 >
-                  <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-purple-600'}`} />
+                  <Icon className={cn(
+                    'mr-3 h-5 w-5 transition',
+                    isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-purple-600'
+                  )} />
                   {item.label}
                 </Link>
               );
             })}
           </nav>
 
+          {/* Logout Desktop */}
           <div className="flex-shrink-0 border-t border-gray-200 p-4">
             <button
               onClick={signOut}
@@ -97,23 +111,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-10">
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 safe-area-top">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
               <Scissors className="w-5 h-5 text-white" />
             </div>
-            <h2 className="ml-2 text-lg font-bold text-gray-900">{barbershop?.name}</h2>
+            <div className="max-w-[60vw]">
+              <h2 className="text-sm font-bold text-gray-900 truncate">{barbershop?.name}</h2>
+              <p className="text-xs text-gray-500 truncate">{user.name}</p>
+            </div>
           </div>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            <Menu className="h-6 w-6 text-gray-700" />
+          
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="border-t border-gray-200 bg-white">
-            <nav className="px-2 pt-2 pb-3 space-y-1">
+          <div className="border-t border-gray-200 bg-white shadow-lg">
+            <nav className="px-2 py-3 space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -121,10 +142,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? 'bg-purple-50 text-purple-600' : 'text-gray-700'
-                    }`}
+                    className={cn(
+                      'flex items-center px-3 py-3 text-sm font-medium rounded-lg transition active:scale-95',
+                      isActive ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                    )}
                   >
                     <Icon className="mr-3 h-5 w-5" />
                     {item.label}
@@ -133,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               })}
               <button
                 onClick={signOut}
-                className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 rounded-lg"
+                className="flex items-center w-full px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition active:scale-95"
               >
                 <LogOut className="mr-3 h-5 w-5" />
                 Sair
@@ -144,13 +165,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Main Content */}
-      <div className="md:pl-64 flex flex-col flex-1">
-        <main className="flex-1 pt-16 md:pt-0">
-          <div className="py-6 px-4 sm:px-6 lg:px-8">
+      <div className="md:pl-64 flex flex-col min-h-screen">
+        <main className="flex-1 pt-16 md:pt-0 pb-20 md:pb-0">
+          <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Bottom Navigation (só mobile) */}
+      <BottomNav items={bottomNavItems} />
     </div>
   );
 }
