@@ -82,13 +82,13 @@ export default function ClientPage() {
       setLoading(true);
       let url = 'https://barberflow-back-end.onrender.com/api/public/barbershops';
       const params = new URLSearchParams();
-      
+
       if (searchTerm) params.append('search', searchTerm);
       if (cityFilter) params.append('city', cityFilter);
       if (stateFilter) params.append('state', stateFilter);
-      
+
       if (params.toString()) url += `?${params.toString()}`;
-      
+
       const response = await fetch(url);
       const data = await response.json();
       setBarbershops(data);
@@ -274,11 +274,11 @@ export default function ClientPage() {
     const R = 6371; // Raio da Terra em km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -303,11 +303,24 @@ export default function ClientPage() {
       <header className="border-b border-gray-800 px-4 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm">
-              BarberFlow
+            <div className="flex items-center gap-2">
+              <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
+                <img
+                  src="/logo.png"
+                  alt="BarberFlow Logo"
+                  className="h-22 w-auto"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm">
+                  BarberFlow
+                </div>
+              </a>
             </div>
           </div>
-          
+
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <a href="/sou-cliente" className="hover:text-blue-400 transition">Início</a>
             {isAuthenticated && (
@@ -344,7 +357,7 @@ export default function ClientPage() {
           <p className="text-gray-400 mb-8">
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
-          
+
           <div className="space-y-4">
             {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto">
@@ -369,7 +382,7 @@ export default function ClientPage() {
                 >
                   {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
                 </button>
-                
+
                 {showFilters && (
                   <div className="bg-gray-900 rounded-lg p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
@@ -413,7 +426,7 @@ export default function ClientPage() {
       <section className="px-4 py-12 bg-gray-950">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-8">Empresas próximas</h2>
-          
+
           {!isAuthenticated ? (
             <>
               <div className="bg-gray-900 rounded-xl p-8 mb-8 text-center max-w-md mx-auto">
@@ -521,7 +534,22 @@ export default function ClientPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm inline-block mb-4">BarberFlow</div>
+              <div className="flex items-center gap-2">
+                <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
+                  <img
+                    src="/logo.png"
+                    alt="BarberFlow Logo"
+                    className="h-20 w-auto"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                  <div className="hidden bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm">
+                    BarberFlow
+                  </div>
+                </a>
+              </div>
               <p className="text-gray-400 text-sm mb-4">Uma nova experiência para uma antiga tradição.</p>
               <div className="flex gap-4">
                 <a href="#" className="text-gray-400 hover:text-white transition"><Facebook size={20} /></a>
@@ -727,9 +755,8 @@ export default function ClientPage() {
                       <button
                         key={time}
                         onClick={() => setSelectedTime(time)}
-                        className={`py-2 rounded-lg text-sm transition ${
-                          selectedTime === time ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        }`}
+                        className={`py-2 rounded-lg text-sm transition ${selectedTime === time ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                          }`}
                       >
                         {new Date(time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </button>
