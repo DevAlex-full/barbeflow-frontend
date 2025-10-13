@@ -60,6 +60,50 @@ export default function ClientPage() {
   const [selectedTime, setSelectedTime] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
+  // Adiciona estilos globais
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .animate-fadeIn {
+        animation: fadeIn 0.2s ease-out;
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+      }
+      select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1f2937;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener('scroll', handleScroll);
@@ -270,18 +314,6 @@ export default function ClientPage() {
     }
   };
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Raio da Terra em km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
   const handleSearch = () => {
     loadBarbershops();
   };
@@ -300,68 +332,72 @@ export default function ClientPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="border-b border-gray-800 px-4 py-4">
+      <header className="border-b border-gray-800 px-4 py-3 bg-black">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
-                <img
-                  src="/Logo.png"
-                  alt="BarberFlow Logo"
-                  className="h-22 w-auto"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-                <div className="hidden bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm">
-                  BarberFlow
-                </div>
-              </a>
-            </div>
+            <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
+              <img
+                src="/Logo.png"
+                alt="BarberFlow Logo"
+                className="h-18 w-auto"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <div className="hidden bg-blue-600 rounded-lg px-3 py-1.5 font-bold text-sm">
+                appbarber
+              </div>
+            </a>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="/sou-cliente" className="hover:text-blue-400 transition">Início</a>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+            <a href="/sou-cliente" className="text-gray-300 hover:text-white transition">Início</a>
             {isAuthenticated && (
               <>
-                <a href="/sou-cliente" className="hover:text-blue-400 transition">Buscar</a>
-                <a href="/meus-agendamentos" className="hover:text-blue-400 transition">Meus Agendamentos</a>
+                <a href="/sou-cliente" className="text-gray-300 hover:text-white transition">Buscar</a>
+                <a href="/meus-agendamentos" className="text-gray-300 hover:text-white transition">Meus Agendamentos</a>
               </>
             )}
           </nav>
 
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-gray-800 transition text-sm">
-              🇧🇷 BR
+            <button className="hidden md:flex items-center gap-2 text-gray-300 hover:text-white transition text-sm">
+              <span>🌙</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-900 transition text-sm border border-gray-800">
+              🇧🇷 <span className="font-medium">BR</span>
             </button>
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-300">Olá, {user?.name?.split(' ')[0]}</span>
-                <button onClick={handleLogout} className="text-sm text-red-400 hover:text-red-300">
+                <button className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition">
+                  <User size={16} className="text-gray-400" />
+                </button>
+                <span className="hidden md:inline text-sm text-gray-300">Olá, {user?.name?.split(' ')[0]}</span>
+                <button onClick={handleLogout} className="hidden md:inline text-sm text-red-400 hover:text-red-300">
                   Sair
                 </button>
               </div>
             ) : (
-              <button onClick={() => setShowAuthModal(true)} className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
-                Entrar
+              <button onClick={() => setShowAuthModal(true)} className="bg-gray-900 border border-gray-800 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition flex items-center gap-2">
+                <User size={16} />
+                <span>Entrar</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <section className="px-4 py-16 md:py-24">
+      <section className="px-4 py-12 md:py-16 bg-gradient-to-b from-black to-gray-950">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Seja bem vindo(a)</h1>
-          <p className="text-gray-400 mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">Seja bem vindo(a)</h1>
+          <p className="text-gray-400 text-sm mb-8">
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
 
           <div className="space-y-4">
-            {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
               <input
                 type="text"
                 placeholder="Encontre um estabelecimento"
@@ -369,48 +405,47 @@ export default function ClientPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={() => !isAuthenticated && setShowAuthModal(true)}
                 onKeyPress={(e) => e.key === 'Enter' && isAuthenticated && handleSearch()}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
+                className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-12 pr-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-700 focus:bg-gray-900 transition"
               />
             </div>
 
-            {/* Filters */}
             {isAuthenticated && (
               <div className="max-w-2xl mx-auto">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="text-sm text-blue-400 hover:text-blue-300 mb-3"
+                  className="text-xs text-gray-400 hover:text-gray-300 mb-3 underline"
                 >
                   {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
                 </button>
 
                 {showFilters && (
-                  <div className="bg-gray-900 rounded-lg p-4 space-y-3">
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <input
                         type="text"
                         placeholder="Cidade"
                         value={cityFilter}
                         onChange={(e) => setCityFilter(e.target.value)}
-                        className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-gray-700"
                       />
                       <input
                         type="text"
                         placeholder="Estado (ex: SP)"
                         value={stateFilter}
                         onChange={(e) => setStateFilter(e.target.value)}
-                        className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-gray-700"
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={handleSearch}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition text-sm"
                       >
                         Buscar
                       </button>
                       <button
                         onClick={clearFilters}
-                        className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition"
+                        className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2.5 rounded-lg font-medium transition text-sm"
                       >
                         Limpar
                       </button>
@@ -423,58 +458,61 @@ export default function ClientPage() {
         </div>
       </section>
 
-      <section className="px-4 py-12 bg-gray-950">
+      <section className="px-4 py-8 bg-gradient-to-b from-gray-950 to-black min-h-[60vh]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold mb-8">Empresas próximas</h2>
+          <h2 className="text-xl font-bold mb-6 text-gray-200">Empresas próximas</h2>
 
           {!isAuthenticated ? (
             <>
-              <div className="bg-gray-900 rounded-xl p-8 mb-8 text-center max-w-md mx-auto">
+              <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 mb-6 text-center max-w-md mx-auto shadow-xl">
                 <div className="mb-6">
-                  <MapPin className="mx-auto text-red-500" size={64} />
+                  <div className="mx-auto w-20 h-20 rounded-full bg-red-950/30 flex items-center justify-center border border-red-900/50">
+                    <MapPin className="text-red-500" size={40} />
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold mb-3">Habilitar localização</h3>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                   Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
                 </p>
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50"
                 >
                   Fazer login para habilitar
                 </button>
               </div>
 
-              <div className="bg-gray-900 rounded-xl p-8 text-center max-w-md mx-auto">
+              <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 text-center max-w-md mx-auto shadow-xl">
                 <div className="mb-6">
-                  <div className="mx-auto w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center">
+                  <div className="mx-auto w-20 h-20 rounded-full bg-gray-800/50 flex items-center justify-center border border-gray-700">
                     <Search className="text-gray-600" size={40} />
                   </div>
                 </div>
                 <h3 className="text-xl font-bold mb-3">Nenhum estabelecimento encontrado</h3>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                   Tente encontrar um estabelecimento pelo nome ou pela cidade
                 </p>
-                <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition">
+                <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50">
                   Pesquisar por nome ou cidade
                 </button>
               </div>
             </>
           ) : (
             <>
-              {/* Location Enable Card */}
               {!locationEnabled && (
-                <div className="bg-gray-900 rounded-xl p-8 mb-8 text-center max-w-md mx-auto">
+                <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 mb-6 text-center max-w-md mx-auto shadow-xl">
                   <div className="mb-6">
-                    <MapPin className="mx-auto text-red-500" size={64} />
+                    <div className="mx-auto w-20 h-20 rounded-full bg-red-950/30 flex items-center justify-center border border-red-900/50">
+                      <MapPin className="text-red-500" size={40} />
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3">Habilitar localização</h3>
-                  <p className="text-gray-400 text-sm mb-6">
+                  <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                     Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
                   </p>
                   <button
                     onClick={handleEnableLocation}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50"
                   >
                     Habilitar localização
                   </button>
@@ -482,45 +520,57 @@ export default function ClientPage() {
               )}
 
               {loading ? (
-                <div className="text-center py-12">
+                <div className="text-center py-16">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-400 text-sm mt-4">Carregando...</p>
                 </div>
               ) : filteredBarbershops.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {filteredBarbershops.map((barbershop) => (
-                    <div key={barbershop.id} className="bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition cursor-pointer" onClick={() => openBarbershopDetails(barbershop)}>
-                      {barbershop.logo && (
-                        <div className="mb-4">
-                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-32 object-cover rounded-lg" />
+                    <div key={barbershop.id} className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group" onClick={() => openBarbershopDetails(barbershop)}>
+                      {barbershop.logo ? (
+                        <div className="mb-4 relative overflow-hidden rounded-xl">
+                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
+                            <span className="text-yellow-500">⭐</span>
+                            <span className="text-white">5.0</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 h-36 flex items-center justify-center border border-gray-700">
+                          <div className="text-center">
+                            <div className="text-4xl mb-2">✂️</div>
+                            <p className="text-gray-500 text-xs font-medium">Sem logo</p>
+                          </div>
                         </div>
                       )}
-                      <h3 className="text-xl font-bold mb-2">{barbershop.name}</h3>
-                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                        <MapPin size={16} />
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-blue-400 transition-colors">{barbershop.name}</h3>
+                      <div className="flex items-center gap-2 text-gray-400 text-xs mb-2">
+                        <MapPin size={14} className="text-gray-500" />
                         <span>{barbershop.city}, {barbershop.state}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
-                        <Phone size={16} />
+                      <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
+                        <Phone size={14} />
                         <span>{barbershop.phone}</span>
                       </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition font-medium">
+                      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl transition font-semibold text-sm shadow-lg hover:shadow-blue-900/50">
                         Ver detalhes e agendar
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-gray-900 rounded-xl p-8 text-center">
+                <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 text-center shadow-xl">
                   <div className="mb-6">
-                    <div className="mx-auto w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center">
+                    <div className="mx-auto w-20 h-20 rounded-full bg-gray-800/50 flex items-center justify-center border border-gray-700">
                       <Search className="text-gray-600" size={40} />
                     </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3">Nenhuma barbearia encontrada</h3>
-                  <p className="text-gray-400 text-sm mb-6">
+                  <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                     Tente ajustar seus filtros ou buscar por outra região
                   </p>
-                  <button onClick={clearFilters} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition">
+                  <button onClick={clearFilters} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50">
                     Limpar filtros
                   </button>
                 </div>
@@ -593,56 +643,59 @@ export default function ClientPage() {
       </footer>
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-2xl max-w-md w-full relative">
-            <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white z-10">
-              <X size={24} />
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#1a1f2e] rounded-3xl max-w-md w-full relative shadow-2xl border border-gray-800/50">
+            <button onClick={() => setShowAuthModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-white z-10 transition-colors">
+              <X size={22} />
             </button>
 
             <div className="p-8">
-              <h2 className="text-2xl font-bold mb-6 text-center">Acessar conta</h2>
+              <h2 className="text-2xl font-bold mb-2 text-center">Acessar conta</h2>
+              <p className="text-gray-400 text-xs text-center mb-6">Entre para agendar seus horários</p>
 
               <div className="space-y-3 mb-6">
-                <button className="w-full bg-white text-black py-3 rounded-lg font-medium hover:bg-gray-100 transition flex items-center justify-center gap-2">
-                  <span className="text-xl">🔵</span>
+                <button className="w-full bg-white text-gray-900 py-3.5 rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center justify-center gap-3 shadow-lg">
+                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">G</div>
                   <span>Google</span>
                 </button>
-                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                  <span className="text-xl">📘</span>
+                <button className="w-full bg-[#1877f2] text-white py-3.5 rounded-xl font-semibold hover:bg-[#166fe5] transition-all flex items-center justify-center gap-3 shadow-lg">
+                  <div className="w-5 h-5 bg-white rounded flex items-center justify-center">
+                    <span className="text-[#1877f2] text-lg font-bold leading-none">f</span>
+                  </div>
                   <span>Facebook</span>
                 </button>
               </div>
 
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700"></div>
+                  <div className="w-full border-t border-gray-700/50"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-900 text-gray-400">ou</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-[#1a1f2e] text-gray-500">ou</span>
                 </div>
               </div>
 
               {authMode === 'login' ? (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">
+                    <label className="block text-xs text-gray-400 mb-2 font-medium">
                       Email ou telefone <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+                      <User className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
                       <input
                         type="email"
                         required
                         value={loginData.email}
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         placeholder="Informe o email ou telefone"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl pl-10 pr-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">
+                    <label className="block text-xs text-gray-400 mb-2 font-medium">
                       Senha <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -652,34 +705,34 @@ export default function ClientPage() {
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         placeholder="Informe sua senha"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl pl-4 pr-11 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                        className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                       >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <a href="#" className="text-sm text-blue-400 hover:text-blue-300">Recuperar senha</a>
+                    <a href="#" className="text-xs text-blue-400 hover:text-blue-300 font-medium">Recuperar senha</a>
                   </div>
 
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition">
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50 mt-2">
                     Entrar
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <input type="text" required value={registerData.name} onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })} placeholder="Nome completo" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <input type="email" required value={registerData.email} onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} placeholder="Email" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <input type="tel" required value={registerData.phone} onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })} placeholder="Telefone" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <input type="password" required value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} placeholder="Senha (mínimo 6 caracteres)" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <input type="password" required value={registerData.confirmPassword} onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} placeholder="Confirmar senha" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition">
+                  <input type="text" required value={registerData.name} onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })} placeholder="Nome completo" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
+                  <input type="email" required value={registerData.email} onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} placeholder="Email" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
+                  <input type="tel" required value={registerData.phone} onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })} placeholder="Telefone" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
+                  <input type="password" required value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} placeholder="Senha (mínimo 6 caracteres)" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
+                  <input type="password" required value={registerData.confirmPassword} onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} placeholder="Confirmar senha" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50">
                     Criar conta
                   </button>
                 </form>
@@ -687,14 +740,14 @@ export default function ClientPage() {
 
               <p className="text-center text-sm text-gray-400 mt-6">
                 {authMode === 'login' ? 'Não possui uma conta?' : 'Já possui uma conta?'}{' '}
-                <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-blue-400 hover:text-blue-300 font-medium">
+                <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-blue-400 hover:text-blue-300 font-semibold">
                   {authMode === 'login' ? 'Cadastre-se' : 'Faça login'}
                 </button>
               </p>
 
               <p className="text-center text-xs text-gray-500 mt-4">
                 Acessando você concorda com o{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">termo de uso</a>
+                <a href="#" className="text-blue-400 hover:text-blue-300 underline">termo de uso</a>
               </p>
             </div>
           </div>
@@ -702,31 +755,36 @@ export default function ClientPage() {
       )}
 
       {showBookingModal && selectedBarbershop && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-gray-900 rounded-2xl max-w-2xl w-full p-8 relative my-8">
-            <button onClick={() => { setShowBookingModal(false); resetBookingForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-white">
-              <X size={24} />
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-3xl max-w-2xl w-full p-8 relative my-8 shadow-2xl">
+            <button onClick={() => { setShowBookingModal(false); resetBookingForm(); }} className="absolute top-5 right-5 text-gray-400 hover:text-white transition-colors">
+              <X size={22} />
             </button>
 
-            <h2 className="text-2xl font-bold mb-2">{selectedBarbershop.name}</h2>
-            <p className="text-gray-400 mb-6">{selectedBarbershop.city}, {selectedBarbershop.state}</p>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">{selectedBarbershop.name}</h2>
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <MapPin size={16} />
+                <span>{selectedBarbershop.city}, {selectedBarbershop.state}</span>
+              </div>
+            </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-2">Serviço *</label>
-                <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                <label className="block text-sm font-semibold mb-2.5">Serviço <span className="text-red-500">*</span></label>
+                <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
                   <option value="">Selecione um serviço</option>
                   {selectedBarbershop.services?.map((service: Service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} - R$ {service.price} ({service.duration}min)
+                      {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Barbeiro *</label>
-                <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                <label className="block text-sm font-semibold mb-2.5">Barbeiro <span className="text-red-500">*</span></label>
+                <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
                   <option value="">Selecione um barbeiro</option>
                   {selectedBarbershop.users?.map((barber: Barber) => (
                     <option key={barber.id} value={barber.id}>
@@ -737,26 +795,29 @@ export default function ClientPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Data *</label>
+                <label className="block text-sm font-semibold mb-2.5">Data <span className="text-red-500">*</span></label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
                 />
               </div>
 
               {availableTimes.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-2">Horário *</label>
-                  <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                  <label className="block text-sm font-semibold mb-2.5">Horário disponível <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-4 gap-2.5 max-h-52 overflow-y-auto p-1">
                     {availableTimes.map((time) => (
                       <button
                         key={time}
                         onClick={() => setSelectedTime(time)}
-                        className={`py-2 rounded-lg text-sm transition ${selectedTime === time ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                          }`}
+                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${
+                          selectedTime === time 
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+                            : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600'
+                        }`}
                       >
                         {new Date(time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </button>
@@ -765,7 +826,11 @@ export default function ClientPage() {
                 </div>
               )}
 
-              <button onClick={handleBooking} disabled={!selectedService || !selectedBarber || !selectedTime} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition">
+              <button 
+                onClick={handleBooking} 
+                disabled={!selectedService || !selectedBarber || !selectedTime} 
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700/50 disabled:cursor-not-allowed disabled:border disabled:border-gray-700 text-white py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50 mt-6"
+              >
                 Confirmar Agendamento
               </button>
             </div>
@@ -774,8 +839,11 @@ export default function ClientPage() {
       )}
 
       {showScrollTop && (
-        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition">
-          <ChevronUp size={24} />
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-full shadow-2xl transition-all hover:scale-110 z-40 border border-blue-500/30"
+        >
+          <ChevronUp size={22} />
         </button>
       )}
     </div>
