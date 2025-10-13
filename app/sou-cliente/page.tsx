@@ -306,7 +306,7 @@ export default function ClientPage() {
             <div className="flex items-center gap-2">
               <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
                 <img
-                  src="/logo.png"
+                  src="/Logo.png"
                   alt="BarberFlow Logo"
                   className="h-22 w-auto"
                   onError={(e) => {
@@ -537,7 +537,7 @@ export default function ClientPage() {
               <div className="flex items-center gap-2">
                 <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
                   <img
-                    src="/logo.png"
+                    src="/Logo.png"
                     alt="BarberFlow Logo"
                     className="h-20 w-auto"
                     onError={(e) => {
