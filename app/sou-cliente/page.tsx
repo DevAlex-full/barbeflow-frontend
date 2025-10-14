@@ -60,7 +60,42 @@ export default function ClientPage() {
   const [selectedTime, setSelectedTime] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
-  // Adiciona estilos globais
+  const handleGoogleLogin = () => {
+    // Redireciona para a rota de autenticação Google do backend
+    window.location.href = 'https://barberflow-back-end.onrender.com/api/client/auth/google';
+  };
+
+  const handleFacebookLogin = () => {
+    // Redireciona para a rota de autenticação Facebook do backend
+    window.location.href = 'https://barberflow-back-end.onrender.com/api/client/auth/facebook';
+  };
+
+  // Função para processar callback do OAuth
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const userData = urlParams.get('user');
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userData));
+        sessionStorage.setItem('@barberFlow:client:token', token);
+        sessionStorage.setItem('@barberFlow:client:user', JSON.stringify(user));
+        setUser(user);
+        setIsAuthenticated(true);
+        setShowAuthModal(false);
+        
+        // Limpa os parâmetros da URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        loadBarbershops();
+      } catch (error) {
+        console.error('Erro ao processar autenticação OAuth:', error);
+        alert('Erro ao fazer login. Tente novamente.');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -106,20 +141,24 @@ export default function ClientPage() {
 
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
+    
+    const checkAuth = () => {
+      const token = sessionStorage.getItem('@barberFlow:client:token');
+      const userData = sessionStorage.getItem('@barberFlow:client:user');
+      if (token && userData) {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(userData));
+        loadBarbershops();
+      }
+    };
+
     window.addEventListener('scroll', handleScroll);
     checkAuth();
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
-
-  const checkAuth = () => {
-    const token = localStorage.getItem('@barberFlow:client:token');
-    const userData = localStorage.getItem('@barberFlow:client:user');
-    if (token && userData) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(userData));
-      loadBarbershops();
-    }
-  };
 
   const loadBarbershops = async () => {
     try {
@@ -159,8 +198,8 @@ export default function ClientPage() {
       }
 
       const data = await response.json();
-      localStorage.setItem('@barberFlow:client:token', data.token);
-      localStorage.setItem('@barberFlow:client:user', JSON.stringify(data.client));
+      sessionStorage.setItem('@barberFlow:client:token', data.token);
+      sessionStorage.setItem('@barberFlow:client:user', JSON.stringify(data.client));
       setUser(data.client);
       setIsAuthenticated(true);
       setShowAuthModal(false);
@@ -196,8 +235,8 @@ export default function ClientPage() {
       }
 
       const data = await response.json();
-      localStorage.setItem('@barberFlow:client:token', data.token);
-      localStorage.setItem('@barberFlow:client:user', JSON.stringify(data.client));
+      sessionStorage.setItem('@barberFlow:client:token', data.token);
+      sessionStorage.setItem('@barberFlow:client:user', JSON.stringify(data.client));
       setUser(data.client);
       setIsAuthenticated(true);
       setShowAuthModal(false);
@@ -208,8 +247,8 @@ export default function ClientPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('@barberFlow:client:token');
-    localStorage.removeItem('@barberFlow:client:user');
+    sessionStorage.removeItem('@barberFlow:client:token');
+    sessionStorage.removeItem('@barberFlow:client:user');
     setIsAuthenticated(false);
     setUser(null);
     setBarbershops([]);
@@ -226,25 +265,25 @@ export default function ClientPage() {
     }
   };
 
-  const loadAvailableTimes = async () => {
-    if (!selectedDate || !selectedService || !selectedBarber) return;
-
-    try {
-      const response = await fetch(
-        `https://barberflow-back-end.onrender.com/api/public/barbershops/${selectedBarbershop.id}/available-times?date=${selectedDate}&serviceId=${selectedService}&barberId=${selectedBarber}`
-      );
-      const times = await response.json();
-      setAvailableTimes(times);
-    } catch (error) {
-      alert('Erro ao carregar horários disponíveis');
-    }
-  };
-
   useEffect(() => {
-    if (selectedDate && selectedService && selectedBarber) {
+    const loadAvailableTimes = async () => {
+      if (!selectedDate || !selectedService || !selectedBarber || !selectedBarbershop) return;
+
+      try {
+        const response = await fetch(
+          `https://barberflow-back-end.onrender.com/api/public/barbershops/${selectedBarbershop.id}/available-times?date=${selectedDate}&serviceId=${selectedService}&barberId=${selectedBarber}`
+        );
+        const times = await response.json();
+        setAvailableTimes(times);
+      } catch (error) {
+        alert('Erro ao carregar horários disponíveis');
+      }
+    };
+
+    if (selectedDate && selectedService && selectedBarber && selectedBarbershop) {
       loadAvailableTimes();
     }
-  }, [selectedDate, selectedService, selectedBarber]);
+  }, [selectedDate, selectedService, selectedBarber, selectedBarbershop]);
 
   const handleBooking = async () => {
     if (!selectedService || !selectedBarber || !selectedTime) {
@@ -253,7 +292,7 @@ export default function ClientPage() {
     }
 
     try {
-      const token = localStorage.getItem('@barberFlow:client:token');
+      const token = sessionStorage.getItem('@barberFlow:client:token');
       const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
@@ -388,111 +427,61 @@ export default function ClientPage() {
         </div>
       </header>
 
-      <section className="px-4 py-12 md:py-16 bg-gradient-to-b from-black to-gray-950">
+      <section className="px-4 py-12 md:py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">Seja bem vindo(a)</h1>
-          <p className="text-gray-400 text-sm mb-8">
+          <h1 className="text-3xl md:text-4xl font-semibold mb-3">Seja bem vindo(a)</h1>
+          <p className="text-gray-500 text-sm mb-8">
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
 
-          <div className="space-y-4">
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-              <input
-                type="text"
-                placeholder="Encontre um estabelecimento"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => !isAuthenticated && setShowAuthModal(true)}
-                onKeyPress={(e) => e.key === 'Enter' && isAuthenticated && handleSearch()}
-                className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-12 pr-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-700 focus:bg-gray-900 transition"
-              />
-            </div>
-
-            {isAuthenticated && (
-              <div className="max-w-2xl mx-auto">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="text-xs text-gray-400 hover:text-gray-300 mb-3 underline"
-                >
-                  {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
-                </button>
-
-                {showFilters && (
-                  <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        placeholder="Cidade"
-                        value={cityFilter}
-                        onChange={(e) => setCityFilter(e.target.value)}
-                        className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-gray-700"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Estado (ex: SP)"
-                        value={stateFilter}
-                        onChange={(e) => setStateFilter(e.target.value)}
-                        className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-gray-700"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSearch}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition text-sm"
-                      >
-                        Buscar
-                      </button>
-                      <button
-                        onClick={clearFilters}
-                        className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2.5 rounded-lg font-medium transition text-sm"
-                      >
-                        Limpar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+            <input
+              type="text"
+              placeholder="Encontre um estabelecimento"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => !isAuthenticated && setShowAuthModal(true)}
+              onKeyPress={(e) => e.key === 'Enter' && isAuthenticated && handleSearch()}
+              className="w-full bg-[#0f1419] border border-gray-800 rounded-lg pl-12 pr-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-gray-700 transition text-sm"
+            />
           </div>
         </div>
       </section>
 
-      <section className="px-4 py-8 bg-gradient-to-b from-gray-950 to-black min-h-[60vh]">
+      <section className="px-4 py-8 bg-[#0a0d11]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-xl font-bold mb-6 text-gray-200">Empresas próximas</h2>
+          <h2 className="text-xl font-semibold mb-6">Empresas próximas</h2>
 
           {!isAuthenticated ? (
             <>
-              <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 mb-6 text-center max-w-md mx-auto shadow-xl">
-                <div className="mb-6">
-                  <div className="mx-auto w-20 h-20 rounded-full bg-red-950/30 flex items-center justify-center border border-red-900/50">
-                    <MapPin className="text-red-500" size={40} />
-                  </div>
+              <div className="bg-[#151b23] rounded-2xl p-10 mb-6 text-center max-w-lg mx-auto">
+                <div className="mb-8">
+                  <MapPin className="mx-auto text-red-500" size={72} />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Habilitar localização</h3>
-                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                <h3 className="text-xl font-semibold mb-3">Habilitar localização</h3>
+                <p className="text-gray-400 text-sm mb-8 leading-relaxed">
                   Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
                 </p>
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50"
+                  className="bg-[#2463eb] hover:bg-[#1d4fd8] text-white px-8 py-3 rounded-lg font-medium transition"
                 >
                   Fazer login para habilitar
                 </button>
               </div>
 
-              <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 text-center max-w-md mx-auto shadow-xl">
-                <div className="mb-6">
-                  <div className="mx-auto w-20 h-20 rounded-full bg-gray-800/50 flex items-center justify-center border border-gray-700">
-                    <Search className="text-gray-600" size={40} />
+              <div className="bg-[#151b23] rounded-2xl p-10 text-center max-w-lg mx-auto">
+                <div className="mb-8">
+                  <div className="mx-auto w-24 h-24 rounded-full bg-[#1f2937] flex items-center justify-center">
+                    <Search className="text-gray-600" size={48} />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3">Nenhum estabelecimento encontrado</h3>
-                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                <h3 className="text-xl font-semibold mb-3">Nenhum estabelecimento encontrado</h3>
+                <p className="text-gray-400 text-sm mb-8 leading-relaxed">
                   Tente encontrar um estabelecimento pelo nome ou pela cidade
                 </p>
-                <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50">
+                <button onClick={() => setShowAuthModal(true)} className="bg-[#2463eb] hover:bg-[#1d4fd8] text-white px-8 py-3 rounded-lg font-medium transition">
                   Pesquisar por nome ou cidade
                 </button>
               </div>
@@ -500,19 +489,17 @@ export default function ClientPage() {
           ) : (
             <>
               {!locationEnabled && (
-                <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 mb-6 text-center max-w-md mx-auto shadow-xl">
-                  <div className="mb-6">
-                    <div className="mx-auto w-20 h-20 rounded-full bg-red-950/30 flex items-center justify-center border border-red-900/50">
-                      <MapPin className="text-red-500" size={40} />
-                    </div>
+                <div className="bg-[#151b23] rounded-2xl p-10 mb-8 text-center max-w-lg mx-auto">
+                  <div className="mb-8">
+                    <MapPin className="mx-auto text-red-500" size={72} />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Habilitar localização</h3>
-                  <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                  <h3 className="text-xl font-semibold mb-3">Habilitar localização</h3>
+                  <p className="text-gray-400 text-sm mb-8 leading-relaxed">
                     Habilite o acesso a localização para encontrarmos os estabelecimentos mais próximos a você =)
                   </p>
                   <button
                     onClick={handleEnableLocation}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50"
+                    className="bg-[#2463eb] hover:bg-[#1d4fd8] text-white px-8 py-3 rounded-lg font-medium transition"
                   >
                     Habilitar localização
                   </button>
@@ -520,57 +507,47 @@ export default function ClientPage() {
               )}
 
               {loading ? (
-                <div className="text-center py-16">
+                <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-gray-400 text-sm mt-4">Carregando...</p>
                 </div>
               ) : filteredBarbershops.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredBarbershops.map((barbershop) => (
-                    <div key={barbershop.id} className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 hover:shadow-xl transition-all duration-300 cursor-pointer group" onClick={() => openBarbershopDetails(barbershop)}>
-                      {barbershop.logo ? (
-                        <div className="mb-4 relative overflow-hidden rounded-xl">
-                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300" />
-                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                            <span className="text-yellow-500">⭐</span>
-                            <span className="text-white">5.0</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mb-4 relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 h-36 flex items-center justify-center border border-gray-700">
-                          <div className="text-center">
-                            <div className="text-4xl mb-2">✂️</div>
-                            <p className="text-gray-500 text-xs font-medium">Sem logo</p>
-                          </div>
+                    <div key={barbershop.id} className="bg-[#151b23] rounded-xl overflow-hidden hover:bg-[#1a2029] transition cursor-pointer" onClick={() => openBarbershopDetails(barbershop)}>
+                      {barbershop.logo && (
+                        <div className="w-full h-40 bg-[#1f2937]">
+                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-full object-cover" />
                         </div>
                       )}
-                      <h3 className="text-lg font-bold mb-2 group-hover:text-blue-400 transition-colors">{barbershop.name}</h3>
-                      <div className="flex items-center gap-2 text-gray-400 text-xs mb-2">
-                        <MapPin size={14} className="text-gray-500" />
-                        <span>{barbershop.city}, {barbershop.state}</span>
+                      <div className="p-5">
+                        <h3 className="text-lg font-semibold mb-3">{barbershop.name}</h3>
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                          <MapPin size={16} />
+                          <span>{barbershop.city}, {barbershop.state}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                          <Phone size={16} />
+                          <span>{barbershop.phone}</span>
+                        </div>
+                        <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm">
+                          Ver detalhes e agendar
+                        </button>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
-                        <Phone size={14} />
-                        <span>{barbershop.phone}</span>
-                      </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl transition font-semibold text-sm shadow-lg hover:shadow-blue-900/50">
-                        Ver detalhes e agendar
-                      </button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-10 text-center shadow-xl">
-                  <div className="mb-6">
-                    <div className="mx-auto w-20 h-20 rounded-full bg-gray-800/50 flex items-center justify-center border border-gray-700">
-                      <Search className="text-gray-600" size={40} />
+                <div className="bg-[#151b23] rounded-2xl p-10 text-center max-w-lg mx-auto">
+                  <div className="mb-8">
+                    <div className="mx-auto w-24 h-24 rounded-full bg-[#1f2937] flex items-center justify-center">
+                      <Search className="text-gray-600" size={48} />
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Nenhuma barbearia encontrada</h3>
-                  <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                  <h3 className="text-xl font-semibold mb-3">Nenhuma barbearia encontrada</h3>
+                  <p className="text-gray-400 text-sm mb-8 leading-relaxed">
                     Tente ajustar seus filtros ou buscar por outra região
                   </p>
-                  <button onClick={clearFilters} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition shadow-lg hover:shadow-blue-900/50">
+                  <button onClick={clearFilters} className="bg-[#2463eb] hover:bg-[#1d4fd8] text-white px-8 py-3 rounded-lg font-medium transition">
                     Limpar filtros
                   </button>
                 </div>
@@ -643,59 +620,66 @@ export default function ClientPage() {
       </footer>
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-[#1a1f2e] rounded-3xl max-w-md w-full relative shadow-2xl border border-gray-800/50">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#2a3441] rounded-2xl max-w-md w-full relative shadow-2xl animate-fadeIn" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <button onClick={() => setShowAuthModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-white z-10 transition-colors">
-              <X size={22} />
+              <X size={24} />
             </button>
 
             <div className="p-8">
-              <h2 className="text-2xl font-bold mb-2 text-center">Acessar conta</h2>
-              <p className="text-gray-400 text-xs text-center mb-6">Entre para agendar seus horários</p>
+              <h2 className="text-2xl font-semibold mb-8 text-center">Acessar conta</h2>
 
-              <div className="space-y-3 mb-6">
-                <button className="w-full bg-white text-gray-900 py-3.5 rounded-xl font-semibold hover:bg-gray-100 transition-all flex items-center justify-center gap-3 shadow-lg">
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">G</div>
-                  <span>Google</span>
-                </button>
-                <button className="w-full bg-[#1877f2] text-white py-3.5 rounded-xl font-semibold hover:bg-[#166fe5] transition-all flex items-center justify-center gap-3 shadow-lg">
-                  <div className="w-5 h-5 bg-white rounded flex items-center justify-center">
-                    <span className="text-[#1877f2] text-lg font-bold leading-none">f</span>
-                  </div>
-                  <span>Facebook</span>
-                </button>
+              <div className="mb-6">
+                <p className="text-sm text-gray-400 mb-4 text-center">Continuar com</p>
+                <div className="space-y-3">
+                  <button className="w-full bg-white text-gray-900 py-3.5 rounded-lg font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-3 shadow-lg">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Google</span>
+                  </button>
+                  <button className="w-full bg-[#1877f2] text-white py-3.5 rounded-lg font-medium hover:bg-[#166fe5] transition-all flex items-center justify-center gap-3 shadow-lg">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span>Facebook</span>
+                  </button>
+                </div>
               </div>
 
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700/50"></div>
+                  <div className="w-full border-t border-gray-600"></div>
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-3 bg-[#1a1f2e] text-gray-500">ou</span>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-3 bg-[#2a3441] text-gray-400">ou</span>
                 </div>
               </div>
 
               {authMode === 'login' ? (
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-5">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-2 font-medium">
+                    <label className="block text-sm text-gray-300 mb-2">
                       Email ou telefone <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+                      <User className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
                       <input
-                        type="email"
+                        type="text"
                         required
                         value={loginData.email}
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         placeholder="Informe o email ou telefone"
-                        className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl pl-10 pr-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all"
+                        className="w-full bg-[#374151] border border-gray-600 rounded-lg pl-11 pr-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-400 mb-2 font-medium">
+                    <label className="block text-sm text-gray-300 mb-2">
                       Senha <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -705,34 +689,69 @@ export default function ClientPage() {
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         placeholder="Informe sua senha"
-                        className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl pl-4 pr-11 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all"
+                        className="w-full bg-[#374151] border border-gray-600 rounded-lg pl-4 pr-12 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                        className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <a href="#" className="text-xs text-blue-400 hover:text-blue-300 font-medium">Recuperar senha</a>
+                    <a href="#" className="text-sm text-[#2463eb] hover:text-[#1d4fd8] font-medium">Recuperar senha</a>
                   </div>
 
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50 mt-2">
+                  <button type="submit" className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-3.5 rounded-lg font-semibold transition-all shadow-lg">
                     Entrar
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <input type="text" required value={registerData.name} onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })} placeholder="Nome completo" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
-                  <input type="email" required value={registerData.email} onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} placeholder="Email" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
-                  <input type="tel" required value={registerData.phone} onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })} placeholder="Telefone" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
-                  <input type="password" required value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} placeholder="Senha (mínimo 6 caracteres)" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
-                  <input type="password" required value={registerData.confirmPassword} onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} placeholder="Confirmar senha" className="w-full bg-[#252d3d] border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2a3347] transition-all" />
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50">
+                  <input 
+                    type="text" 
+                    required 
+                    value={registerData.name} 
+                    onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })} 
+                    placeholder="Nome completo" 
+                    className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all" 
+                  />
+                  <input 
+                    type="email" 
+                    required 
+                    value={registerData.email} 
+                    onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} 
+                    placeholder="Email" 
+                    className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all" 
+                  />
+                  <input 
+                    type="tel" 
+                    required 
+                    value={registerData.phone} 
+                    onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })} 
+                    placeholder="Telefone" 
+                    className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all" 
+                  />
+                  <input 
+                    type="password" 
+                    required 
+                    value={registerData.password} 
+                    onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} 
+                    placeholder="Senha (mínimo 6 caracteres)" 
+                    className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all" 
+                  />
+                  <input 
+                    type="password" 
+                    required 
+                    value={registerData.confirmPassword} 
+                    onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} 
+                    placeholder="Confirmar senha" 
+                    className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:border-[#2463eb] transition-all" 
+                  />
+                  <button type="submit" className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-3.5 rounded-lg font-semibold transition-all shadow-lg">
                     Criar conta
                   </button>
                 </form>
@@ -740,14 +759,14 @@ export default function ClientPage() {
 
               <p className="text-center text-sm text-gray-400 mt-6">
                 {authMode === 'login' ? 'Não possui uma conta?' : 'Já possui uma conta?'}{' '}
-                <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-blue-400 hover:text-blue-300 font-semibold">
+                <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-[#2463eb] hover:text-[#1d4fd8] font-medium">
                   {authMode === 'login' ? 'Cadastre-se' : 'Faça login'}
                 </button>
               </p>
 
               <p className="text-center text-xs text-gray-500 mt-4">
                 Acessando você concorda com o{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300 underline">termo de uso</a>
+                <a href="#" className="text-[#2463eb] hover:text-[#1d4fd8]">termo de uso</a>
               </p>
             </div>
           </div>
@@ -755,36 +774,31 @@ export default function ClientPage() {
       )}
 
       {showBookingModal && selectedBarbershop && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-3xl max-w-2xl w-full p-8 relative my-8 shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-[#151b23] rounded-2xl max-w-2xl w-full p-8 relative my-8 shadow-2xl">
             <button onClick={() => { setShowBookingModal(false); resetBookingForm(); }} className="absolute top-5 right-5 text-gray-400 hover:text-white transition-colors">
-              <X size={22} />
+              <X size={24} />
             </button>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">{selectedBarbershop.name}</h2>
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <MapPin size={16} />
-                <span>{selectedBarbershop.city}, {selectedBarbershop.state}</span>
-              </div>
-            </div>
+            <h2 className="text-2xl font-semibold mb-2">{selectedBarbershop.name}</h2>
+            <p className="text-gray-400 mb-6">{selectedBarbershop.city}, {selectedBarbershop.state}</p>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold mb-2.5">Serviço <span className="text-red-500">*</span></label>
-                <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
+                <label className="block text-sm font-medium mb-2">Serviço *</label>
+                <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-[#1f2937] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2463eb]">
                   <option value="">Selecione um serviço</option>
                   {selectedBarbershop.services?.map((service: Service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
+                      {service.name} - R$ {service.price} ({service.duration}min)
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2.5">Barbeiro <span className="text-red-500">*</span></label>
-                <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
+                <label className="block text-sm font-medium mb-2">Barbeiro *</label>
+                <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="w-full bg-[#1f2937] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2463eb]">
                   <option value="">Selecione um barbeiro</option>
                   {selectedBarbershop.users?.map((barber: Barber) => (
                     <option key={barber.id} value={barber.id}>
@@ -795,29 +809,26 @@ export default function ClientPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2.5">Data <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-2">Data *</label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
+                  className="w-full bg-[#1f2937] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#2463eb]"
                 />
               </div>
 
               {availableTimes.length > 0 && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2.5">Horário disponível <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-4 gap-2.5 max-h-52 overflow-y-auto p-1">
+                  <label className="block text-sm font-medium mb-2">Horário *</label>
+                  <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
                     {availableTimes.map((time) => (
                       <button
                         key={time}
                         onClick={() => setSelectedTime(time)}
-                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${
-                          selectedTime === time 
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
-                            : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600'
-                        }`}
+                        className={`py-2 rounded-lg text-sm transition ${selectedTime === time ? 'bg-[#2463eb] text-white' : 'bg-[#1f2937] text-gray-300 hover:bg-[#374151]'
+                          }`}
                       >
                         {new Date(time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </button>
@@ -826,11 +837,7 @@ export default function ClientPage() {
                 </div>
               )}
 
-              <button 
-                onClick={handleBooking} 
-                disabled={!selectedService || !selectedBarber || !selectedTime} 
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700/50 disabled:cursor-not-allowed disabled:border disabled:border-gray-700 text-white py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-900/50 mt-6"
-              >
+              <button onClick={handleBooking} disabled={!selectedService || !selectedBarber || !selectedTime} className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition">
                 Confirmar Agendamento
               </button>
             </div>
@@ -839,11 +846,8 @@ export default function ClientPage() {
       )}
 
       {showScrollTop && (
-        <button 
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
-          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-full shadow-2xl transition-all hover:scale-110 z-40 border border-blue-500/30"
-        >
-          <ChevronUp size={22} />
+        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-6 right-6 bg-[#2463eb] hover:bg-[#1d4fd8] text-white p-3 rounded-full shadow-lg transition">
+          <ChevronUp size={24} />
         </button>
       )}
     </div>
