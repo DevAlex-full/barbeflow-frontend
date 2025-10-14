@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User, Phone } from 'lucide-react';
+import LanguageSelector from './_components/LanguageSelector';
+import ForgotPasswordModal from './_components/ForgotPasswordModal';
 
 interface Barbershop {
   id: string;
@@ -46,6 +48,7 @@ export default function ClientPage() {
   const [cityFilter, setCityFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({
@@ -550,9 +553,7 @@ export default function ClientPage() {
                 </svg>
               )}
             </button>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-900 transition text-sm border border-gray-800">
-              🇧🇷 <span className="font-medium">BR</span>
-            </button>
+            <LanguageSelector />
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <button className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition">
@@ -876,8 +877,18 @@ export default function ClientPage() {
                   </div>
 
                   <div className="text-right">
-                    <a href="#" className="text-sm text-[#2463eb] hover:text-[#1d4fd8] font-medium">Recuperar senha</a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAuthModal(false);
+                        setShowForgotPassword(true);
+                      }}
+                      className="text-sm text-[#2463eb] hover:text-[#1d4fd8] font-medium"
+                    >
+                      Recuperar senha
+                    </button>
                   </div>
+
 
                   <button type="submit" className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-3.5 rounded-lg font-semibold transition-all shadow-lg">
                     Entrar
@@ -1023,6 +1034,12 @@ export default function ClientPage() {
           <ChevronUp size={24} />
         </button>
       )}
+
+      {/* ⬇️ ADICIONAR AQUI ⬇️ */}
+      <ForgotPasswordModal 
+        isOpen={showForgotPassword} 
+        onClose={() => setShowForgotPassword(false)} 
+      />
     </div>
   );
 }
