@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import ResetPasswordForm from './ResetPasswordForm';
 
-// ✅ Componente de Loading
 function ResetPasswordLoading() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -17,7 +16,6 @@ function ResetPasswordLoading() {
   );
 }
 
-// ✅ Página principal com Suspense (resolve o erro do Vercel)
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<ResetPasswordLoading />}>

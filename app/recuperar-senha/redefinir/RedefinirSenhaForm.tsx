@@ -72,7 +72,7 @@ export default function RedefinirSenhaForm() {
       const response = await fetch('https://barberflow-back-end.onrender.com/api/client/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: password }),
+        body: JSON.stringify({ token, password }),
       });
 
       const data = await response.json();

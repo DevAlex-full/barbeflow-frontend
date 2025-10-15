@@ -1,3 +1,5 @@
+'use client';
+
 import { Suspense } from 'react';
 import RedefinirSenhaForm from './RedefinirSenhaForm';
 import Image from 'next/image';
@@ -38,5 +40,9 @@ function RedefinirSenhaLoading() {
 }
 
 export default function RedefinirSenhaPage() {
-  return <RedefinirSenhaForm />;
+  return (
+    <Suspense fallback={<RedefinirSenhaLoading />}>
+      <RedefinirSenhaForm />
+    </Suspense>
+  );
 }
