@@ -1,11 +1,8 @@
-'use client';
-
 import { Suspense } from 'react';
-import LoginForm from './LoginForm';
+import RedefinirSenhaForm from './RedefinirSenhaForm';
 import Image from 'next/image';
 
-// ✅ Componente de Loading
-function LoginLoading() {
+function RedefinirSenhaLoading() {
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative"
@@ -40,11 +37,6 @@ function LoginLoading() {
   );
 }
 
-// ✅ Página principal com Suspense
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<LoginLoading />}>
-      <LoginForm />
-    </Suspense>
-  );
+export default function RedefinirSenhaPage() {
+  return <RedefinirSenhaForm />;
 }
