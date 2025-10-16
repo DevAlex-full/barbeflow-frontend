@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User, Phone } from 'lucide-react';
 import LanguageSelector from './_components/LanguageSelector';
 import ForgotPasswordModal from './_components/ForgotPasswordModal';
+import Link from 'next/link';
 
 interface Barbershop {
   id: string;
@@ -660,27 +661,37 @@ export default function ClientPage() {
               ) : filteredBarbershops.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredBarbershops.map((barbershop) => (
-                    <div key={barbershop.id} className="bg-[#151b23] rounded-xl overflow-hidden hover:bg-[#1a2029] transition cursor-pointer" onClick={() => openBarbershopDetails(barbershop)}>
-                      {barbershop.logo && (
-                        <div className="w-full h-40 bg-[#1f2937]">
-                          <img src={barbershop.logo} alt={barbershop.name} className="w-full h-full object-cover" />
+                    <Link
+                      key={barbershop.id}
+                      href={`/barbearia/${barbershop.id}`}
+                      className="block"
+                    >
+                      <div className="bg-[#151b23] rounded-xl overflow-hidden hover:bg-[#1a2029] transition cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/20">
+                        {barbershop.logo && (
+                          <div className="w-full h-40 bg-[#1f2937]">
+                            <img
+                              src={barbershop.logo}
+                              alt={barbershop.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="p-5">
+                          <h3 className="text-lg font-semibold mb-3">{barbershop.name}</h3>
+                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                            <MapPin size={16} />
+                            <span>{barbershop.city}, {barbershop.state}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                            <Phone size={16} />
+                            <span>{barbershop.phone}</span>
+                          </div>
+                          <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm">
+                            Ver detalhes e agendar
+                          </button>
                         </div>
-                      )}
-                      <div className="p-5">
-                        <h3 className="text-lg font-semibold mb-3">{barbershop.name}</h3>
-                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                          <MapPin size={16} />
-                          <span>{barbershop.city}, {barbershop.state}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
-                          <Phone size={16} />
-                          <span>{barbershop.phone}</span>
-                        </div>
-                        <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm">
-                          Ver detalhes e agendar
-                        </button>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
@@ -1036,9 +1047,9 @@ export default function ClientPage() {
       )}
 
       {/* ⬇️ ADICIONAR AQUI ⬇️ */}
-      <ForgotPasswordModal 
-        isOpen={showForgotPassword} 
-        onClose={() => setShowForgotPassword(false)} 
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
       />
     </div>
   );

@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Globe // ← NOVO: Ícone para Landing Page
 } from 'lucide-react';
 import { BottomNav, BottomNavSpacer } from '@/components/layout/BottomNav';
 import { cn } from '@/lib/utils/cn';
@@ -44,16 +45,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
+  // ✅ ATUALIZADO: Adicionado item "Landing Page"
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
     { href: '/clientes', icon: Users, label: 'Clientes' },
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
+    { href: '/landing-page', icon: Globe, label: 'Landing Page' }, // ← NOVO
     { href: '/planos', icon: Settings, label: 'Planos' },
   ];
 
-  // Itens do Bottom Nav (4 principais)
-  const bottomNavItems = menuItems.slice(0, 4);
+  // Itens do Bottom Nav (mantém os 4 principais, pode ajustar)
+  const bottomNavItems = [
+    menuItems[0], // Dashboard
+    menuItems[1], // Agendamentos
+    menuItems[2], // Clientes
+    menuItems[4], // Landing Page (ou você pode manter Serviços)
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,7 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Scissors className="w-6 h-6 text-white" />
             </div>
             <div className="ml-3">
-              <h2 className="text-lg font-bold text-gray-900 truncate">{barbershop?.name}</h2>
+              <h2 className="text-lg font-bold text-gray-900 truncate">{barbershop?.name || 'Barbearia'}</h2>
               <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
@@ -118,7 +126,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Scissors className="w-5 h-5 text-white" />
             </div>
             <div className="max-w-[60vw]">
-              <h2 className="text-sm font-bold text-gray-900 truncate">{barbershop?.name}</h2>
+              <h2 className="text-sm font-bold text-gray-900 truncate">{barbershop?.name || 'Barbearia'}</h2>
               <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
