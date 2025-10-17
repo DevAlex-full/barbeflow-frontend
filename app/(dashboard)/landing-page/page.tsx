@@ -66,54 +66,79 @@ export default function ConfigurarLandingPage() {
   }, []);
 
   const loadConfig = async () => {
-    try {
-      const token = sessionStorage.getItem('@barberFlow:token');
-      const userStr = sessionStorage.getItem('@barberFlow:user');
-      
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        setBarbershopId(user.barbershopId);
-      }
-
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setConfig({ ...config, ...data });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
+  try {
+    const token = localStorage.getItem('@barberFlow:token');
+    const userStr = localStorage.getItem('@barberFlow:user');
+    
+    if (!token) {
+      console.warn('⚠️ Token não encontrado');
+      return;
     }
-  };
+
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('👤 Usuário:', user);
+      setBarbershopId(user.barbershopId);
+    }
+
+    console.log('🔄 Carregando configurações...');
+
+    const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Configurações carregadas:', data);
+      setConfig({ ...config, ...data });
+    } else {
+      const error = await response.json();
+      console.error('❌ Erro:', error);
+    }
+  } catch (error) {
+    console.error('❌ Erro na requisição:', error);
+  }
+};
 
   const handleSave = async () => {
-    setSaving(true);
-    setSuccessMessage('');
-    try {
-      const token = sessionStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(config)
-      });
-
-      if (response.ok) {
-        setSuccessMessage('✅ Configurações salvas com sucesso!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        alert('❌ Erro ao salvar configurações');
-      }
-    } catch (error) {
-      alert('❌ Erro ao salvar configurações');
-    } finally {
-      setSaving(false);
+  setSaving(true);
+  setSuccessMessage('');
+  try {
+    const token = localStorage.getItem('@barberFlow:token');
+    
+    if (!token) {
+      alert('❌ Token não encontrado. Faça login novamente.');
+      return;
     }
-  };
+
+    console.log('🔄 Salvando configurações...', config);
+
+    const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(config)
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('✅ Configurações salvas:', data);
+      setSuccessMessage('✅ Configurações salvas com sucesso!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      console.error('❌ Erro ao salvar:', data);
+      alert(`❌ Erro: ${data.error || 'Erro desconhecido'}`);
+    }
+  } catch (error) {
+    console.error('❌ Erro na requisição:', error);
+    alert('❌ Erro ao salvar. Verifique sua conexão.');
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery') => {
     const file = e.target.files?.[0];
@@ -129,7 +154,7 @@ export default function ConfigurarLandingPage() {
 
     setUploading(true);
     try {
-      const token = sessionStorage.getItem('@barberFlow:token');
+      const token = localStorage.getItem('@barberFlow:token');
       const response = await fetch('https://barberflow-back-end.onrender.com/api/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },

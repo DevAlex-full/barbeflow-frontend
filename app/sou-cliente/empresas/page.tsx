@@ -13,7 +13,7 @@ interface Barbershop {
   city: string | null;
   state: string | null;
   phone: string;
-  plan: string;
+  plan: string | null;
   active: boolean;
 }
 
@@ -42,6 +42,22 @@ export default function EmpresasPage() {
     shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     shop.city?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getPlanBadge = (plan: string | null) => {
+    const planLower = plan?.toLowerCase() || 'free';
+    
+    if (planLower === 'premium') {
+      return 'bg-yellow-500 text-black';
+    } else if (planLower === 'basic') {
+      return 'bg-blue-500 text-white';
+    } else {
+      return 'bg-gray-600 text-white';
+    }
+  };
+
+  const getPlanLabel = (plan: string | null) => {
+    return plan ? plan.toUpperCase() : 'FREE';
+  };
 
   if (loading) {
     return (
@@ -122,12 +138,8 @@ export default function EmpresasPage() {
                     
                     {/* Badge do Plano */}
                     <div className="absolute top-3 right-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        shop.plan === 'premium' ? 'bg-yellow-500 text-black' :
-                        shop.plan === 'basic' ? 'bg-blue-500 text-white' :
-                        'bg-gray-600 text-white'
-                      }`}>
-                        {shop.plan.toUpperCase()}
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPlanBadge(shop.plan)}`}>
+                        {getPlanLabel(shop.plan)}
                       </span>
                     </div>
                   </div>
