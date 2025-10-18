@@ -9,8 +9,9 @@ interface User {
   name: string;
   email: string;
   role: string;
-  barbershopId: string;
+  barbershopId: string | null; // ✅ Permite null para super admin
   avatar?: string;
+  isSuperAdmin?: boolean; // ✅ Novo campo
 }
 
 interface Barbershop {
@@ -47,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Garante que só executa no cliente
     if (typeof window === 'undefined') {
       setLoading(false);
       return;
@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setBarbershop(JSON.parse(storedBarbershop));
         }
 
-        // Configura o token no header da API
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('✅ Usuário autenticado:', userData);
@@ -83,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('❌ Erro ao carregar dados de autenticação:', error);
-      // Limpa dados corrompidos
       localStorage.removeItem('@barberFlow:token');
       localStorage.removeItem('@barberFlow:user');
       localStorage.removeItem('@barberFlow:barbershop');
@@ -109,15 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setBarbershop(barbershopData);
       }
 
-      // Configura o token no header da API
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Atualiza o estado
       setUser(userData);
 
-      // Pequeno delay para garantir que o estado foi atualizado
+      // ✅ REDIRECIONAMENTO CORRETO
       setTimeout(() => {
-        router.push('/dashboard');
+        if (userData.isSuperAdmin) {
+          console.log('🔑 Super Admin detectado - redirecionando para /admin');
+          router.push('/admin');
+        } else {
+          console.log('👤 Usuário normal - redirecionando para /dashboard');
+          router.push('/dashboard');
+        }
       }, 100);
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
@@ -133,19 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Cadastro bem-sucedido:', userData);
 
-      // Salva no localStorage
       localStorage.setItem('@barberFlow:token', token);
       localStorage.setItem('@barberFlow:user', JSON.stringify(userData));
       localStorage.setItem('@barberFlow:barbershop', JSON.stringify(barbershopData));
 
-      // Configura o token no header da API
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Atualiza o estado
       setUser(userData);
       setBarbershop(barbershopData);
 
-      // Pequeno delay para garantir que o estado foi atualizado
+      // ✅ Cadastro sempre vai para dashboard (nunca é super admin)
       setTimeout(() => {
         router.push('/dashboard');
       }, 100);
@@ -162,7 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@barberFlow:user');
     localStorage.removeItem('@barberFlow:barbershop');
 
-    // Remove o token do header da API
     delete api.defaults.headers.common['Authorization'];
 
     setUser(null);
