@@ -12,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false); // ✅ NOVO
 
   const ADMIN_EMAILS = [
     'alex.zila@hotmail.com',
@@ -19,12 +20,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    // ✅ Verificação mais rigorosa
+    if (!loading) {
+      if (!user) {
+        router.replace('/login'); // ✅ replace ao invés de push
+        return;
+      }
 
-    if (!loading && user && !ADMIN_EMAILS.includes(user.email)) {
-      router.push('/dashboard');
+      if (!ADMIN_EMAILS.includes(user.email)) {
+        router.replace('/dashboard'); // ✅ replace ao invés de push
+        return;
+      }
+
+      // ✅ Só autoriza se passou em todas as verificações
+      setIsAuthorized(true);
     }
   }, [user, loading, router]);
 
@@ -33,17 +42,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  if (loading) {
+  // ✅ Loading state
+  if (loading || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm md:text-base">Carregando...</p>
+          <p className="text-gray-600 text-sm md:text-base">Verificando permissões...</p>
         </div>
       </div>
     );
   }
 
+  // ✅ Não renderiza nada se não for admin
   if (!user || !ADMIN_EMAILS.includes(user.email)) {
     return null;
   }
