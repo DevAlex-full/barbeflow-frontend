@@ -44,7 +44,7 @@ export default function AgendamentosPage() {
   async function loadInitialData() {
     try {
       const [customersRes, servicesRes, barbershopRes] = await Promise.all([
-        api.get('/customers'), api.get('/services'), api.get('/barbershops')
+        api.get('/customers'), api.get('/services'), api.get('/barbershop')
       ]);
       setCustomers(customersRes.data);
       setServices(servicesRes.data.filter((s: Service) => s.active !== false));
@@ -300,8 +300,8 @@ export default function AgendamentosPage() {
                       isSelected
                         ? 'border-purple-600 bg-purple-50'
                         : isToday
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
                     <div className="text-center">
