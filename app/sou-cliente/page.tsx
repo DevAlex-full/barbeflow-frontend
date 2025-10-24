@@ -14,6 +14,7 @@ interface Barbershop {
   city: string;
   state: string;
   logo?: string;
+  plan?: string | null;
 }
 
 interface Service {
@@ -599,7 +600,16 @@ export default function ClientPage() {
 
       <section className="px-4 py-8 bg-[#0a0d11]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-xl font-semibold mb-6">Empresas próximas</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold">Empresas próximas</h2>
+
+            {/* ✅ Contador de resultados */}
+            {isAuthenticated && filteredBarbershops.length > 0 && (
+              <span className="text-sm text-gray-400">
+                {filteredBarbershops.length} {filteredBarbershops.length === 1 ? 'barbearia encontrada' : 'barbearias encontradas'}
+              </span>
+            )}
+          </div>
 
           {!isAuthenticated ? (
             <>
@@ -660,39 +670,105 @@ export default function ClientPage() {
                 </div>
               ) : filteredBarbershops.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredBarbershops.map((barbershop) => (
-                    <Link
-                      key={barbershop.id}
-                      href={`/barbearia/${barbershop.id}`}
-                      className="block"
-                    >
-                      <div className="bg-[#151b23] rounded-xl overflow-hidden hover:bg-[#1a2029] transition cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/20">
-                        {barbershop.logo && (
-                          <div className="w-full h-40 bg-[#1f2937]">
-                            <img
-                              src={barbershop.logo}
-                              alt={barbershop.name}
-                              className="w-full h-full object-cover"
-                            />
+                  {filteredBarbershops.map((barbershop) => {
+                    // ✅ FUNÇÃO PARA DEFINIR BADGE DO PLANO
+                    const getPlanBadge = (plan: string | null) => {
+                      const planLower = plan?.toLowerCase() || 'free';
+                      if (planLower === 'premium' || planLower === 'enterprise') {
+                        return 'bg-yellow-500 text-black';
+                      } else if (planLower === 'standard' || planLower === 'basic') {
+                        return 'bg-blue-500 text-white';
+                      } else {
+                        return 'bg-gray-600 text-white';
+                      }
+                    };
+
+                    const getPlanLabel = (plan: string | null) => {
+                      return plan ? plan.toUpperCase() : 'FREE';
+                    };
+
+                    return (
+                      <Link
+                        key={barbershop.id}
+                        href={`/barbearia/${barbershop.id}`}
+                        className="block group"
+                      >
+                        <div className="bg-[#151b23] rounded-xl overflow-hidden hover:bg-[#1a2029] transition cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/20 border border-transparent hover:border-blue-500/50">
+                          {/* ✅ IMAGEM COM BADGE DE PLANO */}
+                          <div className="relative w-full h-40 bg-gradient-to-br from-gray-800 to-gray-900">
+                            {barbershop.logo ? (
+                              <img
+                                src={barbershop.logo}
+                                alt={barbershop.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-6xl">
+                                ✂️
+                              </div>
+                            )}
+
+                            {/* ✅ BADGE DO PLANO NO CANTO SUPERIOR DIREITO */}
+                            <div className="absolute top-3 right-3">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPlanBadge(barbershop.plan)}`}>
+                                {getPlanLabel(barbershop.plan)}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                        <div className="p-5">
-                          <h3 className="text-lg font-semibold mb-3">{barbershop.name}</h3>
-                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                            <MapPin size={16} />
-                            <span>{barbershop.city}, {barbershop.state}</span>
+
+                          {/* CONTEÚDO */}
+                          <div className="p-5">
+                            {/* ✅ NOME E AVALIAÇÃO */}
+                            <div className="flex items-start justify-between mb-3">
+                              <h3 className="text-lg font-semibold group-hover:text-blue-400 transition line-clamp-1 flex-1">
+                                {barbershop.name}
+                              </h3>
+                              <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded-lg ml-2 flex-shrink-0">
+                                <svg className="w-4 h-4 fill-yellow-500 text-yellow-500" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span className="text-yellow-500 font-bold text-sm">5.0</span>
+                              </div>
+                            </div>
+
+                            {/* ENDEREÇO */}
+                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                              <MapPin size={16} />
+                              <span className="line-clamp-1">
+                                {barbershop.city && barbershop.state
+                                  ? `${barbershop.city}, ${barbershop.state}`
+                                  : barbershop.address || 'Endereço não informado'}
+                              </span>
+                            </div>
+
+                            {/* TELEFONE */}
+                            <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
+                              <Phone size={16} />
+                              <span>{barbershop.phone}</span>
+                            </div>
+
+                            {/* ✅ DISTÂNCIA (se localização habilitada) */}
+                            {locationEnabled && (
+                              <div className="flex items-center gap-2 text-blue-400 text-sm mb-4">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>450m de distância</span>
+                              </div>
+                            )}
+
+                            {/* BOTÃO */}
+                            <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-blue-500/50">
+                              Ver detalhes e agendar
+                              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
-                            <Phone size={16} />
-                            <span>{barbershop.phone}</span>
-                          </div>
-                          <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm">
-                            Ver detalhes e agendar
-                          </button>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="bg-[#151b23] rounded-2xl p-10 text-center max-w-lg mx-auto">

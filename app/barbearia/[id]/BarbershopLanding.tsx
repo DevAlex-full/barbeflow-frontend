@@ -127,7 +127,7 @@ export default function BarbershopLanding() {
       const response = await fetch(`https://barberflow-back-end.onrender.com/api/public/barbershops/${barbershopId}`);
 
       if (!response.ok) {
-        router.push('/sou-cliente/empresas');
+        router.push('/sou-cliente');
         return;
       }
 
@@ -313,7 +313,7 @@ export default function BarbershopLanding() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <p className="text-white text-xl mb-4">Barbearia não encontrada</p>
-          <Link href="/sou-cliente/empresas">
+          <Link href="/sou-cliente">
             <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
               Voltar para lista
             </button>
@@ -354,7 +354,7 @@ export default function BarbershopLanding() {
       <div className="sticky top-0 z-40 bg-[#1a1f2e]/95 backdrop-blur-lg border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <Link href="/sou-cliente/empresas">
+            <Link href="/sou-cliente">
               <button className="flex items-center gap-2 text-gray-400 hover:text-white transition">
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-sm sm:text-base">Voltar</span>
