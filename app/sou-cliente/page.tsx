@@ -710,8 +710,8 @@ export default function ClientPage() {
 
                             {/* ✅ BADGE DO PLANO NO CANTO SUPERIOR DIREITO */}
                             <div className="absolute top-3 right-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPlanBadge(barbershop.plan)}`}>
-                                {getPlanLabel(barbershop.plan)}
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPlanBadge(barbershop.plan ?? null)}`}>
+                                {getPlanLabel(barbershop.plan ?? null)}
                               </span>
                             </div>
                           </div>
