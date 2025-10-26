@@ -535,7 +535,7 @@ export default function BarbershopLanding() {
                       <span>{service.duration} min</span>
                     </div>
                     <div className="text-xl sm:text-2xl font-bold text-primary">
-                      R$ {service.price.toFixed(2)}
+                      R$ {Number(service.price).toFixed(2)}
                     </div>
                   </div>
 
@@ -773,8 +773,8 @@ export default function BarbershopLanding() {
                           key={barber.id}
                           onClick={() => setSelectedBarber(barber.id)}
                           className={`p-4 rounded-lg border-2 transition text-left ${selectedBarber === barber.id
-                              ? 'border-primary bg-primary/10'
-                              : 'border-gray-700 hover:border-gray-600'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-gray-700 hover:border-gray-600'
                             }`}
                         >
                           <div className="flex items-center gap-3">
@@ -859,8 +859,8 @@ export default function BarbershopLanding() {
                               key={time}
                               onClick={() => setSelectedTime(time)}
                               className={`py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition ${selectedTime === time
-                                  ? 'bg-primary text-white'
-                                  : 'bg-[#0a0e1a] text-gray-300 hover:bg-gray-800 border border-gray-700'
+                                ? 'bg-primary text-white'
+                                : 'bg-[#0a0e1a] text-gray-300 hover:bg-gray-800 border border-gray-700'
                                 }`}
                             >
                               {new Date(time).toLocaleTimeString('pt-BR', {
@@ -909,7 +909,7 @@ export default function BarbershopLanding() {
                             <div className="flex justify-between pt-2 border-t border-gray-700">
                               <span className="text-gray-400">Valor:</span>
                               <span className="font-bold text-primary text-base sm:text-lg">
-                                R$ {selectedService.price.toFixed(2)}
+                                R$ {Number(selectedService.price).toFixed(2)}
                               </span>
                             </div>
                           </div>
