@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  MapPin, Phone, Clock, Star, Calendar, Scissors, ArrowLeft, Share2, 
+  MapPin, Phone, Clock, Star, Calendar, Scissors, ArrowLeft, Share2,
   Heart, Users, X, CheckCircle, AlertCircle, Sparkles, TrendingUp,
   Instagram, Facebook, MessageCircle, Youtube, Globe
 } from 'lucide-react';
@@ -73,7 +73,7 @@ export default function BarbershopLanding() {
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
-  
+
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -242,7 +242,7 @@ export default function BarbershopLanding() {
       console.log('✅ [BOOKING] Agendamento criado:', data);
       setBookingSuccess(true);
       setBookingError('');
-      
+
       setTimeout(() => {
         setShowBookingModal(false);
         resetBooking();
@@ -374,7 +374,7 @@ export default function BarbershopLanding() {
                   </button>
                 </Link>
               )}
-              <button 
+              <button
                 onClick={handleShare}
                 className="p-2 hover:bg-gray-800 rounded-lg transition"
                 title="Compartilhar"
@@ -386,8 +386,334 @@ export default function BarbershopLanding() {
         </div>
       </div>
 
-      {/* ... TODO O RESTO DO CÓDIGO DA LANDING PAGE (Hero, Informações, Serviços, etc.) ... */}
-      {/* (Mantenha todo o código visual da landing page que você já tem) */}
+      {/* Hero Section */}
+      <section className="relative h-[60vh] sm:h-[70vh] overflow-hidden">
+        <div className="absolute inset-0">
+          {config.heroImage ? (
+            <img
+              src={config.heroImage}
+              alt={barbershop.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900" />
+          )}
+          <div className="absolute inset-0 bg-black/60" />
+        </div>
+
+        <div className="relative z-10 h-full flex items-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="max-w-3xl">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6">
+                {config.heroTitle || barbershop.name}
+              </h1>
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-6 sm:mb-8">
+                {config.heroSubtitle || 'Estilo, tradição e excelência'}
+              </p>
+              {config.allowOnlineBooking && (
+                <button
+                  onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="btn-primary text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:scale-105 transition-transform inline-flex items-center gap-2"
+                >
+                  <Calendar className="w-5 h-5" />
+                  Agendar Agora
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Informações Rápidas */}
+      <section className="py-6 sm:py-8 bg-[#1a1f2e] border-y border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-6 h-6 sm:w-7 sm:h-7 text-blue-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-400">Localização</p>
+                <p className="font-bold text-sm sm:text-base truncate">
+                  {barbershop.address || `${barbershop.city}, ${barbershop.state}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Phone className="w-6 h-6 sm:w-7 sm:h-7 text-green-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-400">WhatsApp</p>
+                <a
+                  href={`https://wa.me/${barbershop.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-sm sm:text-base hover:text-primary transition truncate block"
+                >
+                  {barbershop.phone}
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-yellow-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-400">Avaliação</p>
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-sm sm:text-base">5.0</span>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-500 text-yellow-500" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sobre */}
+      {config.description && (
+        <section className="py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Sobre Nós</h2>
+              <p className="text-base sm:text-lg text-gray-300 leading-relaxed">
+                {config.description}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Serviços */}
+      <section id="services" className="py-12 sm:py-16 bg-[#1a1f2e]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Nossos Serviços</h2>
+            <p className="text-base sm:text-lg text-gray-400">
+              Escolha o serviço ideal para você
+            </p>
+          </div>
+
+          {services.length === 0 ? (
+            <div className="text-center py-12">
+              <Scissors className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">Nenhum serviço cadastrado ainda</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="bg-[#0a0e1a] rounded-xl p-5 sm:p-6 border border-gray-800 hover:border-primary transition group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-primary transition">
+                        {service.name}
+                      </h3>
+                      {service.description && (
+                        <p className="text-xs sm:text-sm text-gray-400 line-clamp-2">
+                          {service.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center ml-3 flex-shrink-0">
+                      <Scissors className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+                      <Clock className="w-4 h-4" />
+                      <span>{service.duration} min</span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-primary">
+                      R$ {service.price.toFixed(2)}
+                    </div>
+                  </div>
+
+                  {config.allowOnlineBooking && (
+                    <button
+                      onClick={() => handleBookService(service)}
+                      className="w-full btn-primary text-white py-2.5 sm:py-3 rounded-lg font-bold hover:scale-105 transition-transform text-sm sm:text-base"
+                    >
+                      Agendar
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Equipe */}
+      {config.showTeam && barbers.length > 0 && (
+        <section className="py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Nossa Equipe</h2>
+              <p className="text-base sm:text-lg text-gray-400">
+                Profissionais qualificados e experientes
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {barbers.map((barber) => (
+                <div
+                  key={barber.id}
+                  className="bg-[#1a1f2e] rounded-xl p-4 sm:p-6 text-center border border-gray-800 hover:border-primary transition group"
+                >
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-primary flex items-center justify-center text-2xl sm:text-3xl overflow-hidden">
+                    {barber.avatar ? (
+                      <img
+                        src={barber.avatar}
+                        alt={barber.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      '👨‍💼'
+                    )}
+                  </div>
+                  <h3 className="font-bold text-base sm:text-lg mb-1 group-hover:text-primary transition">
+                    {barber.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400">Barbeiro Profissional</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Galeria */}
+      {config.showGallery && config.galleryImages && config.galleryImages.length > 0 && (
+        <section className="py-12 sm:py-16 bg-[#1a1f2e]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Galeria</h2>
+              <p className="text-base sm:text-lg text-gray-400">
+                Confira nosso trabalho
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {config.galleryImages.map((image, index) => (
+                <div
+                  key={index}
+                  className="aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                >
+                  <img
+                    src={image}
+                    alt={`Galeria ${index + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Horários de Funcionamento */}
+      <section className="py-12 sm:py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Horário de Funcionamento</h2>
+            <p className="text-base sm:text-lg text-gray-400">
+              Estamos prontos para te atender
+            </p>
+          </div>
+
+          <div className="bg-[#1a1f2e] rounded-xl p-6 sm:p-8 border border-gray-800">
+            <div className="space-y-3 sm:space-y-4">
+              {Object.entries(config.businessHours || {}).map(([day, hours]) => (
+                <div
+                  key={day}
+                  className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0"
+                >
+                  <span className="font-bold text-sm sm:text-base">{formatBusinessHours(day)}</span>
+                  <span className="text-sm sm:text-base text-gray-400">{hours}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Redes Sociais */}
+      {(config.instagramUrl || config.facebookUrl || config.whatsappNumber || config.youtubeUrl) && (
+        <section className="py-12 sm:py-16 bg-[#1a1f2e]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Siga-nos</h2>
+            <p className="text-base sm:text-lg text-gray-400 mb-8">
+              Fique por dentro das novidades
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              {config.instagramUrl && (
+                <a
+                  href={config.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                >
+                  <Instagram className="w-7 h-7 sm:w-8 sm:h-8" />
+                </a>
+              )}
+              {config.facebookUrl && (
+                <a
+                  href={config.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                >
+                  <Facebook className="w-7 h-7 sm:w-8 sm:h-8" />
+                </a>
+              )}
+              {config.whatsappNumber && (
+                <a
+                  href={`https://wa.me/${config.whatsappNumber.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-green-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                >
+                  <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8" />
+                </a>
+              )}
+              {config.youtubeUrl && (
+                <a
+                  href={config.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-red-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                >
+                  <Youtube className="w-7 h-7 sm:w-8 sm:h-8" />
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-black/40 border-t border-gray-800 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-sm sm:text-base text-gray-400 mb-2">
+            © 2025 {barbershop.name}. Todos os direitos reservados.
+          </p>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Powered by <span className="text-primary font-bold">BarberFlow</span>
+          </p>
+        </div>
+      </footer>
 
       {/* Modal de Agendamento - VERSÃO CORRIGIDA */}
       {showBookingModal && selectedService && config.allowOnlineBooking && (
@@ -426,9 +752,8 @@ export default function BarbershopLanding() {
                 <div className="flex items-center justify-center mb-6 sm:mb-8">
                   {[1, 2, 3].map((step) => (
                     <div key={step} className="flex items-center">
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${
-                        bookingStep >= step ? 'bg-primary' : 'bg-gray-700'
-                      }`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${bookingStep >= step ? 'bg-primary' : 'bg-gray-700'
+                        }`}>
                         {step}
                       </div>
                       {step < 3 && (
@@ -447,11 +772,10 @@ export default function BarbershopLanding() {
                         <button
                           key={barber.id}
                           onClick={() => setSelectedBarber(barber.id)}
-                          className={`p-4 rounded-lg border-2 transition text-left ${
-                            selectedBarber === barber.id
+                          className={`p-4 rounded-lg border-2 transition text-left ${selectedBarber === barber.id
                               ? 'border-primary bg-primary/10'
                               : 'border-gray-700 hover:border-gray-600'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
@@ -510,7 +834,7 @@ export default function BarbershopLanding() {
                 {bookingStep === 3 && (
                   <div className="space-y-4">
                     <h3 className="font-bold text-base sm:text-lg mb-3">Escolha o Horário</h3>
-                    
+
                     {loadingTimes ? (
                       <div className="text-center py-8">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -534,15 +858,14 @@ export default function BarbershopLanding() {
                             <button
                               key={time}
                               onClick={() => setSelectedTime(time)}
-                              className={`py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition ${
-                                selectedTime === time
+                              className={`py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition ${selectedTime === time
                                   ? 'bg-primary text-white'
                                   : 'bg-[#0a0e1a] text-gray-300 hover:bg-gray-800 border border-gray-700'
-                              }`}
+                                }`}
                             >
-                              {new Date(time).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
+                              {new Date(time).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
                               })}
                             </button>
                           ))}
@@ -572,9 +895,9 @@ export default function BarbershopLanding() {
                               <div className="flex justify-between">
                                 <span className="text-gray-400">Horário:</span>
                                 <span className="font-bold">
-                                  {new Date(selectedTime).toLocaleTimeString('pt-BR', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
+                                  {new Date(selectedTime).toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
                                   })}
                                 </span>
                               </div>
