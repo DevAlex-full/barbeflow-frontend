@@ -13,9 +13,9 @@ import {
   LogOut,
   Menu,
   X,
-  Globe // ← NOVO: Ícone para Landing Page
+  Globe
 } from 'lucide-react';
-import { BottomNav, BottomNavSpacer } from '@/components/layout/BottomNav';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { cn } from '@/lib/utils/cn';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,8 +24,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // ✅ FIX: Redirecionamento apenas quando terminar de carregar E não tiver usuário
   useEffect(() => {
     if (!loading && !user) {
+      console.log('⚠️ Usuário não autenticado - redirecionando para login');
       router.push('/login');
     }
   }, [user, loading, router]);
@@ -35,32 +37,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  // ✅ FIX: Loading state enquanto verifica autenticação
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="text-sm text-gray-600">Carregando...</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) return null;
+  // ✅ FIX: Se não tem usuário após loading, retorna null (useEffect vai redirecionar)
+  if (!user) {
+    return null;
+  }
 
-  // ✅ ATUALIZADO: Adicionado item "Landing Page"
+  // ✅ Menu items (agora só é renderizado quando user existe)
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
     { href: '/clientes', icon: Users, label: 'Clientes' },
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
-    { href: '/landing-page', icon: Globe, label: 'Landing Page' }, // ← NOVO
+    { href: '/landing-page', icon: Globe, label: 'Landing Page' },
     { href: '/planos', icon: Settings, label: 'Planos' },
   ];
 
-  // Itens do Bottom Nav (mantém os 4 principais, pode ajustar)
+  // Itens do Bottom Nav
   const bottomNavItems = [
     menuItems[0], // Dashboard
     menuItems[1], // Agendamentos
     menuItems[2], // Clientes
-    menuItems[4], // Landing Page (ou você pode manter Serviços)
+    menuItems[4], // Landing Page
   ];
 
   return (
@@ -73,8 +82,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
               <Scissors className="w-6 h-6 text-white" />
             </div>
-            <div className="ml-3">
-              <h2 className="text-lg font-bold text-gray-900 truncate">{barbershop?.name || 'Barbearia'}</h2>
+            <div className="ml-3 flex-1 min-w-0">
+              {/* ✅ FIX: Uso seguro de barbershop com fallback */}
+              <h2 className="text-lg font-bold text-gray-900 truncate">
+                {barbershop?.name || 'Barbearia'}
+              </h2>
+              {/* ✅ FIX: user.name agora é garantido existir */}
               <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
@@ -119,21 +132,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 safe-area-top">
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg flex-shrink-0">
               <Scissors className="w-5 h-5 text-white" />
             </div>
-            <div className="max-w-[60vw]">
-              <h2 className="text-sm font-bold text-gray-900 truncate">{barbershop?.name || 'Barbearia'}</h2>
+            <div className="min-w-0 flex-1">
+              {/* ✅ FIX: Uso seguro de barbershop */}
+              <h2 className="text-sm font-bold text-gray-900 truncate">
+                {barbershop?.name || 'Barbearia'}
+              </h2>
               <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
           
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+            aria-label="Menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
