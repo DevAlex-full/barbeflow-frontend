@@ -7,10 +7,10 @@ import Link from 'next/link';
 import {
   MapPin, Phone, Clock, Star, Calendar, Scissors, ArrowLeft, Share2,
   Heart, Users, X, CheckCircle, AlertCircle, Sparkles, TrendingUp,
-  Instagram, Facebook, MessageCircle, Youtube, Globe
+  Instagram, Facebook, MessageCircle, Youtube, Globe, ChevronRight,
+  Award, Zap, Shield, Crown
 } from 'lucide-react';
 
-// ✅ IMPORTAR O HOOK CORRETO PARA CLIENTES
 import { useClientAuth } from '@/lib/contexts/ClientAuthContext';
 
 interface BarbershopConfig {
@@ -63,8 +63,6 @@ export default function BarbershopLanding() {
   const params = useParams();
   const router = useRouter();
   const barbershopId = params?.id as string;
-
-  // ✅ USAR O HOOK DE CLIENTE (NÃO O AuthContext DAS BARBEARIAS)
   const { client, isAuthenticated } = useClientAuth();
 
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
@@ -73,6 +71,7 @@ export default function BarbershopLanding() {
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<string>('');
@@ -82,10 +81,62 @@ export default function BarbershopLanding() {
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // ✅ Verificar se está aberto agora
+useEffect(() => {
+  const checkIfOpen = () => {
+    const now = new Date();
+    const dayMap: Record<number, string> = {
+      0: 'sunday',
+      1: 'monday',
+      2: 'tuesday',
+      3: 'wednesday',
+      4: 'thursday',
+      5: 'friday',
+      6: 'saturday'
+    };
+    const today = dayMap[now.getDay()];
+    
+    // ✅ Usar os businessHours com fallback
+    const businessHours = barbershop?.config?.businessHours || {
+      monday: '09:00-20:00',
+      tuesday: '09:00-20:00',
+      wednesday: '09:00-20:00',
+      thursday: '09:00-20:00',
+      friday: '09:00-20:00',
+      saturday: '09:00-18:00',
+      sunday: 'Fechado'
+    };
+    
+    const hours = businessHours[today];
+    
+    if (!hours || hours.toLowerCase() === 'fechado') {
+      setIsOpen(false);
+      return;
+    }
+
+    const [start, end] = hours.split('-');
+    if (start && end) {
+      const [startH, startM] = start.split(':').map(Number);
+      const [endH, endM] = end.split(':').map(Number);
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      
+      setIsOpen(currentMinutes >= startMinutes && currentMinutes <= endMinutes);
+    }
+  };
+
+  checkIfOpen();
+  const interval = setInterval(checkIfOpen, 60000);
+  return () => clearInterval(interval);
+}, [barbershop]); // ✅ Depende só do barbershop
 
   const config: BarbershopConfig = barbershop?.config || {
-    primaryColor: '#2563eb',
-    secondaryColor: '#7c3aed',
+    primaryColor: '#6366f1',
+    secondaryColor: '#8b5cf6',
     showTeam: true,
     showGallery: true,
     showReviews: true,
@@ -125,12 +176,10 @@ export default function BarbershopLanding() {
   const fetchBarbershopData = async () => {
     try {
       const response = await fetch(`https://barberflow-back-end.onrender.com/api/public/barbershops/${barbershopId}`);
-
       if (!response.ok) {
         router.push('/sou-cliente');
         return;
       }
-
       const shopData = await response.json();
       setBarbershop(shopData);
       setServices(shopData.services || []);
@@ -165,14 +214,11 @@ export default function BarbershopLanding() {
       alert('Entre em contato pelo telefone para agendar');
       return;
     }
-
-    // ✅ VERIFICAR SE ESTÁ AUTENTICADO
     if (!isAuthenticated) {
       alert('Você precisa fazer login para agendar');
       router.push('/sou-cliente');
       return;
     }
-
     setSelectedService(service);
     setShowBookingModal(true);
     setBookingStep(1);
@@ -192,64 +238,45 @@ export default function BarbershopLanding() {
       setBookingError('Preencha todos os campos');
       return;
     }
-
     if (!isAuthenticated) {
       setBookingError('Você precisa estar logado');
       router.push('/sou-cliente');
       return;
     }
-
     try {
-      // ✅ PEGAR O TOKEN DO SESSIONSTORAGE (não localStorage)
       const token = sessionStorage.getItem('@barberFlow:client:token');
-
       if (!token) {
         setBookingError('Token não encontrado. Faça login novamente.');
         router.push('/sou-cliente');
         return;
       }
-
-      console.log('📤 [BOOKING] Enviando agendamento:', {
-        barbershopId,
-        barberId: selectedBarber,
-        serviceId: selectedService.id,
-        date: selectedTime,
-        clientId: client?.id
-      });
-
       const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // ✅ TOKEN DO CLIENTE PÚBLICO
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          barbershopId: barbershopId, // ✅ ENVIANDO BARBERSHOP ID
+          barbershopId: barbershopId,
           barberId: selectedBarber,
           serviceId: selectedService.id,
           date: selectedTime
         })
       });
-
       const data = await response.json();
-
       if (!response.ok) {
-        console.error('❌ [BOOKING] Erro:', data);
         setBookingError(data.error || 'Erro ao criar agendamento');
         return;
       }
-
-      console.log('✅ [BOOKING] Agendamento criado:', data);
       setBookingSuccess(true);
       setBookingError('');
-
       setTimeout(() => {
         setShowBookingModal(false);
         resetBooking();
         router.push('/meus-agendamentos');
       }, 2500);
     } catch (error) {
-      console.error('❌ [BOOKING] Erro na requisição:', error);
+      console.error('Erro:', error);
       setBookingError('Erro ao criar agendamento. Tente novamente.');
     }
   };
@@ -279,7 +306,7 @@ export default function BarbershopLanding() {
       }
     } else {
       navigator.clipboard.writeText(url);
-      alert('Link copiado!');
+      alert('✅ Link copiado!');
     }
   };
 
@@ -298,10 +325,13 @@ export default function BarbershopLanding() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-indigo-500 mx-auto"></div>
+            <Sparkles className="w-8 h-8 text-indigo-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <p className="text-white mt-6 text-lg font-medium animate-pulse">Carregando experiência...</p>
         </div>
       </div>
     );
@@ -309,12 +339,15 @@ export default function BarbershopLanding() {
 
   if (!barbershop) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-white text-xl mb-4">Barbearia não encontrada</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-400" />
+          </div>
+          <h1 className="text-white text-2xl font-bold mb-3">Barbearia não encontrada</h1>
+          <p className="text-gray-400 mb-6">Esta página não existe ou foi removida</p>
           <Link href="/sou-cliente">
-            <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            <button className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all duration-300 hover:scale-105 shadow-lg shadow-indigo-500/50">
               Voltar para lista
             </button>
           </Link>
@@ -324,229 +357,316 @@ export default function BarbershopLanding() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white">
       <style jsx global>{`
         :root {
           --primary-color: ${config.primaryColor};
           --secondary-color: ${config.secondaryColor};
         }
         .btn-primary {
-          background-color: var(--primary-color) !important;
+          background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         }
         .btn-primary:hover {
-          filter: brightness(0.9);
+          transform: translateY(-2px);
+          box-shadow: 0 20px 40px -10px var(--primary-color);
         }
         .text-primary {
-          color: var(--primary-color) !important;
+          color: var(--primary-color);
         }
         .border-primary {
-          border-color: var(--primary-color) !important;
-        }
-        .bg-primary {
-          background-color: var(--primary-color) !important;
+          border-color: var(--primary-color);
         }
         .bg-gradient-primary {
-          background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+          background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        @keyframes shine {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .animate-shine {
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          background-size: 200% 100%;
+          animation: shine 3s infinite;
         }
       `}</style>
 
-      {/* Header Fixo */}
-      <div className="sticky top-0 z-40 bg-[#1a1f2e]/95 backdrop-blur-lg border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+      {/* Header Glassmorphism */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/sou-cliente">
-              <button className="flex items-center gap-2 text-gray-400 hover:text-white transition">
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base">Voltar</span>
+              <button className="flex items-center gap-2 text-gray-300 hover:text-white transition-all duration-300 hover:gap-3 group">
+                <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition">
+                  <ArrowLeft className="w-5 h-5" />
+                </div>
+                <span className="font-medium">Voltar</span>
               </button>
             </Link>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* ✅ INDICADOR DE LOGIN */}
+            
+            <div className="flex items-center gap-3">
               {isAuthenticated && client ? (
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-green-400">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline">{client.name.split(' ')[0]}</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/30">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-medium text-green-300 hidden sm:inline">{client.name.split(' ')[0]}</span>
                 </div>
               ) : (
                 <Link href="/sou-cliente">
-                  <button className="text-xs sm:text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium">
+                  <button className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-full font-bold transition-all duration-300 hover:scale-105 shadow-lg shadow-indigo-500/50">
                     Entrar
                   </button>
                 </Link>
               )}
               <button
                 onClick={handleShare}
-                className="p-2 hover:bg-gray-800 rounded-lg transition"
+                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all duration-300 hover:scale-110"
                 title="Compartilhar"
               >
-                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Share2 className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <section className="relative h-[60vh] sm:h-[70vh] overflow-hidden">
-        <div className="absolute inset-0">
+      {/* Hero Ultra Premium */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        {/* Background com Parallax Effect */}
+        <div className="absolute inset-0 z-0">
           {config.heroImage ? (
-            <img
-              src={config.heroImage}
-              alt={barbershop.name}
-              className="w-full h-full object-cover"
-            />
+            <>
+              <img
+                src={config.heroImage}
+                alt={barbershop.name}
+                className="w-full h-full object-cover scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950" />
+            </>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900" />
+            <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900" />
           )}
-          <div className="absolute inset-0 bg-black/60" />
+          {/* Overlay Pattern */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+            backgroundSize: '32px 32px'
+          }} />
         </div>
 
-        <div className="relative z-10 h-full flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6">
-                {config.heroTitle || barbershop.name}
-              </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-6 sm:mb-8">
-                {config.heroSubtitle || 'Estilo, tradição e excelência'}
-              </p>
-              {config.allowOnlineBooking && (
-                <button
-                  onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="btn-primary text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:scale-105 transition-transform inline-flex items-center gap-2"
-                >
-                  <Calendar className="w-5 h-5" />
-                  Agendar Agora
-                </button>
-              )}
+        {/* Floating Elements */}
+        <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+          <Scissors className="absolute top-1/4 left-10 w-16 h-16 text-indigo-500/20 animate-float" style={{ animationDelay: '0s' }} />
+          <Star className="absolute top-1/3 right-20 w-12 h-12 text-purple-500/20 animate-float" style={{ animationDelay: '1s' }} />
+          <Crown className="absolute bottom-1/4 left-1/4 w-14 h-14 text-pink-500/20 animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="mb-8 animate-float">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 mb-6">
+              <Sparkles className="w-4 h-4 text-yellow-400" />
+              <span className="text-sm font-medium">Experiência Premium</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Informações Rápidas */}
-      <section className="py-6 sm:py-8 bg-[#1a1f2e] border-y border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-6 h-6 sm:w-7 sm:h-7 text-blue-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-400">Localização</p>
-                <p className="font-bold text-sm sm:text-base truncate">
-                  {barbershop.address || `${barbershop.city}, ${barbershop.state}`}
-                </p>
-              </div>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-white animate-shine">
+              {config.heroTitle || barbershop.name}
+            </span>
+          </h1>
+
+          <p className="text-xl sm:text-2xl md:text-3xl text-gray-300 mb-10 max-w-3xl mx-auto font-light">
+            {config.heroSubtitle || 'Onde estilo encontra excelência'}
+          </p>
+
+          {config.allowOnlineBooking && (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                className="btn-primary px-10 py-5 rounded-2xl text-lg font-bold transition-all duration-300 inline-flex items-center gap-3 shadow-2xl hover:shadow-indigo-500/50"
+              >
+                <Calendar className="w-6 h-6" />
+                Agendar Agora
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <a
+                href={`https://wa.me/${barbershop.phone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-10 py-5 bg-white/10 backdrop-blur-xl hover:bg-white/20 border border-white/20 rounded-2xl text-lg font-bold transition-all duration-300 inline-flex items-center gap-3"
+              >
+                <MessageCircle className="w-6 h-6" />
+                WhatsApp
+              </a>
             </div>
+          )}
 
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Phone className="w-6 h-6 sm:w-7 sm:h-7 text-green-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-400">WhatsApp</p>
-                <a
-                  href={`https://wa.me/${barbershop.phone.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-sm sm:text-base hover:text-primary transition truncate block"
-                >
-                  {barbershop.phone}
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-yellow-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-400">Avaliação</p>
-                <div className="flex items-center gap-1">
-                  <span className="font-bold text-sm sm:text-base">5.0</span>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-500 text-yellow-500" />
-                    ))}
-                  </div>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16">
+            {[
+              { icon: Users, value: '500+', label: 'Clientes' },
+              { icon: Star, value: '5.0', label: 'Avaliação' },
+              { icon: Award, value: '10+', label: 'Anos' }
+            ].map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <stat.icon className="w-6 h-6" />
                 </div>
+                <p className="text-2xl font-bold mb-1">{stat.value}</p>
+                <p className="text-sm text-gray-400">{stat.label}</p>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+            <div className="w-1 h-3 bg-white/50 rounded-full animate-pulse" />
           </div>
         </div>
       </section>
 
-      {/* Sobre */}
+      {/* Info Cards Flutuantes */}
+      <section className="-mt-20 relative z-30 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: MapPin,
+                title: 'Localização',
+                value: barbershop.address || `${barbershop.city}, ${barbershop.state}`,
+                color: 'from-blue-500 to-cyan-500',
+                action: barbershop.address ? `https://maps.google.com/?q=${encodeURIComponent(barbershop.address)}` : null
+              },
+              {
+                icon: Phone,
+                title: 'Contato',
+                value: barbershop.phone,
+                color: 'from-green-500 to-emerald-500',
+                action: `https://wa.me/${barbershop.phone.replace(/\D/g, '')}`
+              },
+              {
+                icon: Clock,
+                title: 'Horário',
+                value: 'Ver horários',
+                color: 'from-purple-500 to-pink-500',
+                action: null,
+                onClick: () => document.getElementById('hours')?.scrollIntoView({ behavior: 'smooth' })
+              }
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl group cursor-pointer"
+                onClick={card.onClick || (() => card.action && window.open(card.action, '_blank'))}
+              >
+                <div className={`w-14 h-14 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <card.icon className="w-7 h-7" />
+                </div>
+                <p className="text-sm text-gray-400 mb-1">{card.title}</p>
+                <p className="font-bold text-lg">{card.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sobre - Design Moderno */}
       {config.description && (
-        <section className="py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Sobre Nós</h2>
-              <p className="text-base sm:text-lg text-gray-300 leading-relaxed">
-                {config.description}
-              </p>
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-medium">Nossa História</span>
             </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Tradição e Excelência
+            </h2>
+            <p className="text-lg text-gray-300 leading-relaxed">
+              {config.description}
+            </p>
           </div>
         </section>
       )}
 
-      {/* Serviços */}
-      <section id="services" className="py-12 sm:py-16 bg-[#1a1f2e]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Nossos Serviços</h2>
-            <p className="text-base sm:text-lg text-gray-400">
-              Escolha o serviço ideal para você
+      {/* Serviços - Cards Premium */}
+      <section id="services" className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+              <Scissors className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-medium">Nossos Serviços</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Serviços Premium
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Escolha o serviço perfeito para o seu estilo
             </p>
           </div>
 
           {services.length === 0 ? (
-            <div className="text-center py-12">
-              <Scissors className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">Nenhum serviço cadastrado ainda</p>
+            <div className="text-center py-20 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10">
+              <Scissors className="w-20 h-20 text-gray-600 mx-auto mb-6 animate-pulse" />
+              <p className="text-gray-400 text-lg">Serviços em breve...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {services.map((service) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.map((service, i) => (
                 <div
                   key={service.id}
-                  className="bg-[#0a0e1a] rounded-xl p-5 sm:p-6 border border-gray-800 hover:border-primary transition group"
+                  className="group bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 hover:border-indigo-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/20"
+                  style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-primary transition">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold mb-3 group-hover:text-indigo-400 transition-colors">
                         {service.name}
                       </h3>
                       {service.description && (
-                        <p className="text-xs sm:text-sm text-gray-400 line-clamp-2">
+                        <p className="text-sm text-gray-400 leading-relaxed">
                           {service.description}
                         </p>
                       )}
                     </div>
-                    <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center ml-3 flex-shrink-0">
-                      <Scissors className="w-6 h-6" />
+                    <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center ml-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0">
+                      <Scissors className="w-8 h-8" />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+                  <div className="flex items-center gap-4 mb-6 text-sm text-gray-400">
+                    <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       <span>{service.duration} min</span>
                     </div>
-                    <div className="text-xl sm:text-2xl font-bold text-primary">
-                      R$ {Number(service.price).toFixed(2)}
+                    <div className="h-1 w-1 rounded-full bg-gray-600" />
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      <span>Garantia</span>
                     </div>
                   </div>
 
-                  {config.allowOnlineBooking && (
-                    <button
-                      onClick={() => handleBookService(service)}
-                      className="w-full btn-primary text-white py-2.5 sm:py-3 rounded-lg font-bold hover:scale-105 transition-transform text-sm sm:text-base"
-                    >
-                      Agendar
-                    </button>
-                  )}
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">A partir de</p>
+                      <p className="text-3xl font-black bg-clip-text text-transparent bg-gradient-primary">
+                        R$ {Number(service.price).toFixed(2)}
+                      </p>
+                    </div>
+                    {config.allowOnlineBooking && (
+                      <button
+                        onClick={() => handleBookService(service)}
+                        className="px-6 py-3 bg-gradient-primary rounded-xl font-bold hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 flex items-center gap-2"
+                      >
+                        Agendar
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -554,38 +674,58 @@ export default function BarbershopLanding() {
         </div>
       </section>
 
-      {/* Equipe */}
+      {/* Equipe - Design Circular */}
       {config.showTeam && barbers.length > 0 && (
-        <section className="py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Nossa Equipe</h2>
-              <p className="text-base sm:text-lg text-gray-400">
-                Profissionais qualificados e experientes
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white/5 backdrop-blur-xl">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+                <Users className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm font-medium">Profissionais</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                Nossa Equipe de Elite
+              </h2>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Profissionais certificados e apaixonados pelo que fazem
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {barbers.map((barber) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {barbers.map((barber, i) => (
                 <div
                   key={barber.id}
-                  className="bg-[#1a1f2e] rounded-xl p-4 sm:p-6 text-center border border-gray-800 hover:border-primary transition group"
+                  className="group text-center"
+                  style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-primary flex items-center justify-center text-2xl sm:text-3xl overflow-hidden">
-                    {barber.avatar ? (
-                      <img
-                        src={barber.avatar}
-                        alt={barber.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      '👨‍💼'
-                    )}
+                  <div className="relative mb-6 mx-auto w-32 h-32 sm:w-40 sm:h-40">
+                    <div className="absolute inset-0 bg-gradient-primary rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 opacity-60" />
+                    <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white/20 group-hover:border-indigo-500/50 transition-all duration-300 group-hover:scale-110">
+                      {barber.avatar ? (
+                        <img
+                          src={barber.avatar}
+                          alt={barber.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center text-4xl">
+                          👨‍💼
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-full border-4 border-slate-950 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
                   </div>
-                  <h3 className="font-bold text-base sm:text-lg mb-1 group-hover:text-primary transition">
+                  <h3 className="font-bold text-lg mb-2 group-hover:text-indigo-400 transition-colors">
                     {barber.name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-400">Barbeiro Profissional</p>
+                  <p className="text-sm text-gray-400 mb-3">Especialista</p>
+                  <div className="flex items-center justify-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -593,28 +733,38 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Galeria */}
+      {/* Galeria - Grid Masonry */}
       {config.showGallery && config.galleryImages && config.galleryImages.length > 0 && (
-        <section className="py-12 sm:py-16 bg-[#1a1f2e]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Galeria</h2>
-              <p className="text-base sm:text-lg text-gray-400">
-                Confira nosso trabalho
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm font-medium">Portfólio</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                Nosso Trabalho
+              </h2>
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                Transformações que inspiram confiança
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {config.galleryImages.map((image, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                  className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
+                  onClick={() => setSelectedImageIndex(index)}
                 >
                   <img
                     src={image}
                     alt={`Galeria ${index + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <p className="text-white font-bold">Ver mais</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -622,25 +772,38 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Horários de Funcionamento */}
-      <section className="py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Horário de Funcionamento</h2>
-            <p className="text-base sm:text-lg text-gray-400">
-              Estamos prontos para te atender
+      {/* Horários - Design Tabela Premium */}
+      <section id="hours" className="py-24 px-4 sm:px-6 lg:px-8 bg-white/5 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+              <Clock className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-medium">Horários</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Quando Estamos Abertos
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Prontos para te atender com excelência
             </p>
           </div>
 
-          <div className="bg-[#1a1f2e] rounded-xl p-6 sm:p-8 border border-gray-800">
-            <div className="space-y-3 sm:space-y-4">
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10">
+            <div className="space-y-4">
               {Object.entries(config.businessHours || {}).map(([day, hours]) => (
                 <div
                   key={day}
-                  className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0"
+                  className="flex items-center justify-between py-4 px-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all duration-300 group"
                 >
-                  <span className="font-bold text-sm sm:text-base">{formatBusinessHours(day)}</span>
-                  <span className="text-sm sm:text-base text-gray-400">{hours}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <span className="font-bold text-lg">{formatBusinessHours(day)}</span>
+                  </div>
+                  <span className={`font-bold text-lg ${hours.toLowerCase() === 'fechado' ? 'text-red-400' : 'text-green-400'}`}>
+                    {hours}
+                  </span>
                 </div>
               ))}
             </div>
@@ -648,24 +811,33 @@ export default function BarbershopLanding() {
         </div>
       </section>
 
-      {/* Redes Sociais */}
+      {/* Redes Sociais - Floating Buttons */}
       {(config.instagramUrl || config.facebookUrl || config.whatsappNumber || config.youtubeUrl) && (
-        <section className="py-12 sm:py-16 bg-[#1a1f2e]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Siga-nos</h2>
-            <p className="text-base sm:text-lg text-gray-400 mb-8">
-              Fique por dentro das novidades
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6">
+              <Share2 className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-medium">Redes Sociais</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Conecte-se Conosco
+            </h2>
+            <p className="text-lg text-gray-400 mb-12">
+              Siga-nos para novidades e promoções exclusivas
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-6">
               {config.instagramUrl && (
                 <a
                   href={config.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                  className="group relative"
                 >
-                  <Instagram className="w-7 h-7 sm:w-8 sm:h-8" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-60" />
+                  <div className="relative w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
+                    <Instagram className="w-10 h-10" />
+                  </div>
                 </a>
               )}
               {config.facebookUrl && (
@@ -673,9 +845,12 @@ export default function BarbershopLanding() {
                   href={config.facebookUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                  className="group relative"
                 >
-                  <Facebook className="w-7 h-7 sm:w-8 sm:h-8" />
+                  <div className="absolute inset-0 bg-blue-600 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-60" />
+                  <div className="relative w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
+                    <Facebook className="w-10 h-10" />
+                  </div>
                 </a>
               )}
               {config.whatsappNumber && (
@@ -683,9 +858,12 @@ export default function BarbershopLanding() {
                   href={`https://wa.me/${config.whatsappNumber.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-green-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                  className="group relative"
                 >
-                  <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8" />
+                  <div className="absolute inset-0 bg-green-600 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-60" />
+                  <div className="relative w-20 h-20 bg-green-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
+                    <MessageCircle className="w-10 h-10" />
+                  </div>
                 </a>
               )}
               {config.youtubeUrl && (
@@ -693,9 +871,12 @@ export default function BarbershopLanding() {
                   href={config.youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-red-600 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                  className="group relative"
                 >
-                  <Youtube className="w-7 h-7 sm:w-8 sm:h-8" />
+                  <div className="absolute inset-0 bg-red-600 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-60" />
+                  <div className="relative w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
+                    <Youtube className="w-10 h-10" />
+                  </div>
                 </a>
               )}
             </div>
@@ -703,89 +884,158 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Footer */}
-      <footer className="bg-black/40 border-t border-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm sm:text-base text-gray-400 mb-2">
-            © 2025 {barbershop.name}. Todos os direitos reservados.
-          </p>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Powered by <span className="text-primary font-bold">BarberFlow</span>
-          </p>
+      {/* CTA Final */}
+      {config.allowOnlineBooking && (
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-900/20 via-purple-900/20 to-pink-900/20">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-primary blur-3xl opacity-20 animate-pulse" />
+              <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-12 border border-white/10">
+                <Crown className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-float" />
+                <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+                  Pronto para uma Transformação?
+                </h2>
+                <p className="text-xl text-gray-300 mb-8">
+                  Agende agora e experimente o melhor serviço da região
+                </p>
+                <button
+                  onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="btn-primary px-12 py-5 rounded-2xl text-xl font-bold transition-all duration-300 inline-flex items-center gap-3 shadow-2xl hover:shadow-indigo-500/50"
+                >
+                  <Calendar className="w-6 h-6" />
+                  Agendar Agora
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Footer Premium */}
+      <footer className="bg-black/40 backdrop-blur-xl border-t border-white/10 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
+                <Scissors className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl">{barbershop.name}</h3>
+                <p className="text-sm text-gray-400">Excelência em Barbearia</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm text-gray-400">
+              <a href={`tel:${barbershop.phone}`} className="hover:text-white transition">
+                {barbershop.phone}
+              </a>
+              <span>•</span>
+              <p>{barbershop.city}, {barbershop.state}</p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-400 mb-2">
+                © 2025 {barbershop.name}. Todos os direitos reservados.
+              </p>
+              <p className="text-xs text-gray-500">
+                Powered by <span className="text-indigo-400 font-bold">BarberFlow</span> 💜
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
 
-      {/* Modal de Agendamento - VERSÃO CORRIGIDA */}
+      {/* Modal de Agendamento - Ultra Moderno */}
       {showBookingModal && selectedService && config.allowOnlineBooking && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1a1f2e] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-800 my-4">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl my-4">
             {bookingSuccess ? (
-              <div className="p-6 sm:p-8 text-center">
-                <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 text-green-500 mx-auto mb-4 animate-bounce" />
-                <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-green-500">Agendamento Confirmado!</h2>
-                <p className="text-gray-400 mb-4 text-sm sm:text-base">
-                  Você receberá uma confirmação por email
+              <div className="p-12 text-center">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-green-500 blur-3xl opacity-30 animate-pulse" />
+                  <CheckCircle className="relative w-24 h-24 text-green-400 mx-auto animate-bounce" />
+                </div>
+                <h2 className="text-4xl font-bold mb-4 text-green-400">Confirmado!</h2>
+                <p className="text-gray-300 mb-6 text-lg">
+                  Seu agendamento foi realizado com sucesso
                 </p>
-                <p className="text-xs sm:text-sm text-gray-500">Redirecionando...</p>
+                <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+                  <p className="text-sm text-gray-400 mb-4">Enviamos os detalhes por email</p>
+                  <div className="animate-pulse text-indigo-400">Redirecionando...</div>
+                </div>
               </div>
             ) : (
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold">Agendar {selectedService.name}</h2>
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">Novo Agendamento</h2>
+                    <p className="text-gray-400">{selectedService.name}</p>
+                  </div>
                   <button
                     onClick={() => { setShowBookingModal(false); resetBooking(); }}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition"
+                    className="p-3 hover:bg-white/10 rounded-xl transition"
                   >
-                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
 
-                {/* ✅ EXIBIR ERRO SE HOUVER */}
                 {bookingError && (
-                  <div className="mb-4 flex items-center gap-2 bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg">
+                  <div className="mb-6 flex items-center gap-3 bg-red-900/20 border border-red-500/50 text-red-400 px-6 py-4 rounded-2xl">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <span className="text-sm">{bookingError}</span>
                   </div>
                 )}
 
-                {/* Progress Steps */}
-                <div className="flex items-center justify-center mb-6 sm:mb-8">
+                {/* Progress */}
+                <div className="flex items-center justify-center mb-10">
                   {[1, 2, 3].map((step) => (
                     <div key={step} className="flex items-center">
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${bookingStep >= step ? 'bg-primary' : 'bg-gray-700'
-                        }`}>
-                        {step}
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all duration-300 ${
+                        bookingStep >= step 
+                          ? 'bg-gradient-primary scale-110' 
+                          : 'bg-white/5'
+                      }`}>
+                        {bookingStep > step ? <CheckCircle className="w-6 h-6" /> : step}
                       </div>
                       {step < 3 && (
-                        <div className={`w-12 sm:w-16 h-1 ${bookingStep > step ? 'bg-primary' : 'bg-gray-700'}`} />
+                        <div className={`w-20 h-1 transition-all duration-300 ${
+                          bookingStep > step ? 'bg-gradient-primary' : 'bg-white/10'
+                        }`} />
                       )}
                     </div>
                   ))}
                 </div>
 
-                {/* Step 1: Escolher Barbeiro */}
+                {/* Step 1: Barbeiro */}
                 {bookingStep === 1 && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-base sm:text-lg mb-3">Escolha o Profissional</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl mb-4">Escolha o Profissional</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {barbers.map((barber) => (
                         <button
                           key={barber.id}
                           onClick={() => setSelectedBarber(barber.id)}
-                          className={`p-4 rounded-lg border-2 transition text-left ${selectedBarber === barber.id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-gray-700 hover:border-gray-600'
-                            }`}
+                          className={`p-6 rounded-2xl border-2 transition-all duration-300 text-left ${
+                            selectedBarber === barber.id
+                              ? 'border-indigo-500 bg-indigo-500/10 scale-105'
+                              : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                          }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                               {barber.avatar ? (
-                                <Image src={barber.avatar} alt={barber.name} width={48} height={48} className="rounded-full object-cover w-full h-full" />
+                                <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
                               ) : '👨‍💼'}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm sm:text-base truncate">{barber.name}</p>
-                              <p className="text-gray-400 text-xs sm:text-sm">Barbeiro</p>
+                              <p className="font-bold text-lg truncate">{barber.name}</p>
+                              <p className="text-gray-400 text-sm">Especialista</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                {[1,2,3,4,5].map(s => (
+                                  <Star key={s} className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </button>
@@ -794,74 +1044,75 @@ export default function BarbershopLanding() {
                     <button
                       onClick={handleNextStep}
                       disabled={!selectedBarber}
-                      className="w-full mt-4 btn-primary disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition text-sm sm:text-base"
+                      className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold transition-all duration-300 text-lg"
                     >
-                      Próximo
+                      Continuar
                     </button>
                   </div>
                 )}
 
-                {/* Step 2: Escolher Data */}
+                {/* Step 2: Data */}
                 {bookingStep === 2 && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-base sm:text-lg mb-3">Escolha a Data</h3>
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl mb-4">Escolha a Data</h3>
                     <input
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full bg-[#0a0e1a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary transition text-sm sm:text-base"
+                      className="w-full bg-white/5 border border-white/20 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-indigo-500 transition text-lg"
                     />
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       <button
                         onClick={() => setBookingStep(1)}
-                        className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition text-sm sm:text-base"
+                        className="flex-1 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold transition"
                       >
                         Voltar
                       </button>
                       <button
                         onClick={handleNextStep}
                         disabled={!selectedDate}
-                        className="flex-1 btn-primary disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition text-sm sm:text-base"
+                        className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold transition"
                       >
-                        Próximo
+                        Continuar
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Step 3: Escolher Horário */}
+                {/* Step 3: Horário */}
                 {bookingStep === 3 && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-base sm:text-lg mb-3">Escolha o Horário</h3>
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl mb-4">Escolha o Horário</h3>
 
                     {loadingTimes ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-400 text-sm">Carregando horários disponíveis...</p>
+                      <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Carregando horários...</p>
                       </div>
                     ) : availableTimes.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Clock className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400 text-sm sm:text-base">Nenhum horário disponível para esta data</p>
+                      <div className="text-center py-12 bg-white/5 rounded-2xl">
+                        <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-400 mb-4">Nenhum horário disponível</p>
                         <button
                           onClick={() => setBookingStep(2)}
-                          className="mt-4 text-primary hover:opacity-80 text-sm"
+                          className="text-indigo-400 hover:text-indigo-300 text-sm font-medium"
                         >
                           Escolher outra data
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-2">
                           {availableTimes.map((time) => (
                             <button
                               key={time}
                               onClick={() => setSelectedTime(time)}
-                              className={`py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition ${selectedTime === time
-                                ? 'bg-primary text-white'
-                                : 'bg-[#0a0e1a] text-gray-300 hover:bg-gray-800 border border-gray-700'
-                                }`}
+                              className={`py-4 rounded-xl font-medium transition-all duration-300 ${
+                                selectedTime === time
+                                  ? 'bg-gradient-primary text-white scale-105'
+                                  : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                              }`}
                             >
                               {new Date(time).toLocaleTimeString('pt-BR', {
                                 hour: '2-digit',
@@ -871,10 +1122,10 @@ export default function BarbershopLanding() {
                           ))}
                         </div>
 
-                        {/* Resumo do Agendamento */}
-                        <div className="bg-[#0a0e1a] rounded-lg p-4 border border-gray-700 mt-4">
-                          <h4 className="font-bold mb-3 text-sm sm:text-base">Resumo do Agendamento</h4>
-                          <div className="space-y-2 text-xs sm:text-sm">
+                        {/* Resumo */}
+                        <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+                          <h4 className="font-bold mb-4 text-lg">Resumo</h4>
+                          <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-400">Serviço:</span>
                               <span className="font-bold">{selectedService.name}</span>
@@ -902,30 +1153,26 @@ export default function BarbershopLanding() {
                                 </span>
                               </div>
                             )}
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Duração:</span>
-                              <span className="font-bold">{selectedService.duration} min</span>
-                            </div>
-                            <div className="flex justify-between pt-2 border-t border-gray-700">
-                              <span className="text-gray-400">Valor:</span>
-                              <span className="font-bold text-primary text-base sm:text-lg">
+                            <div className="flex justify-between pt-3 border-t border-white/10">
+                              <span className="text-gray-400">Total:</span>
+                              <span className="font-bold text-indigo-400 text-xl">
                                 R$ {Number(selectedService.price).toFixed(2)}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex gap-3 mt-4">
+                        <div className="flex gap-4">
                           <button
                             onClick={() => setBookingStep(2)}
-                            className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition text-sm sm:text-base"
+                            className="flex-1 bg-white/5 hover:bg-white/10 text-white py-4 rounded-2xl font-bold transition"
                           >
                             Voltar
                           </button>
                           <button
                             onClick={handleConfirmBooking}
                             disabled={!selectedTime}
-                            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition text-sm sm:text-base"
+                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold transition shadow-lg shadow-green-500/50"
                           >
                             Confirmar
                           </button>
@@ -937,6 +1184,27 @@ export default function BarbershopLanding() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Lightbox para Galeria */}
+      {selectedImageIndex !== null && config.galleryImages && (
+        <div 
+          className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedImageIndex(null)}
+        >
+          <button
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full transition"
+            onClick={() => setSelectedImageIndex(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={config.galleryImages[selectedImageIndex]}
+            alt={`Galeria ${selectedImageIndex + 1}`}
+            className="max-w-full max-h-[90vh] rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
