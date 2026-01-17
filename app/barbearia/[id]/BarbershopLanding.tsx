@@ -175,7 +175,7 @@ useEffect(() => {
 
   const fetchBarbershopData = async () => {
     try {
-      const response = await fetch(`https://barberflow-back-end.onrender.com/api/public/barbershops/${barbershopId}`);
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}`);
       if (!response.ok) {
         router.push('/sou-cliente');
         return;
@@ -195,7 +195,7 @@ useEffect(() => {
     setLoadingTimes(true);
     try {
       const response = await fetch(
-        `https://barberflow-back-end.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${selectedDate}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
+        `https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${selectedDate}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
       );
       if (response.ok) {
         const times = await response.json();
@@ -250,7 +250,7 @@ useEffect(() => {
         router.push('/sou-cliente');
         return;
       }
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

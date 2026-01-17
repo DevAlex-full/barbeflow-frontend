@@ -70,7 +70,7 @@ export default function ClientPage() {
   const handleGoogleLogin = () => {
     try {
       setOauthLoading(true);
-      window.location.href = 'https://barberflow-back-end.onrender.com/api/client/auth/google';
+      window.location.href = 'https://barberflow-api-v2.onrender.com/api/client/auth/google';
     } catch (error) {
       console.error('Erro ao iniciar login Google:', error);
       alert('Erro ao conectar com Google. Tente novamente.');
@@ -81,7 +81,7 @@ export default function ClientPage() {
   const handleFacebookLogin = () => {
     try {
       setOauthLoading(true);
-      window.location.href = 'https://barberflow-back-end.onrender.com/api/client/auth/facebook';
+      window.location.href = 'https://barberflow-api-v2.onrender.com/api/client/auth/facebook';
     } catch (error) {
       console.error('Erro ao iniciar login Facebook:', error);
       alert('Erro ao conectar com Facebook. Tente novamente.');
@@ -291,7 +291,7 @@ export default function ClientPage() {
   const loadBarbershops = async () => {
     try {
       setLoading(true);
-      let url = 'https://barberflow-back-end.onrender.com/api/public/barbershops';
+      let url = 'https://barberflow-api-v2.onrender.com/api/public/barbershops';
       const params = new URLSearchParams();
 
       if (searchTerm) params.append('search', searchTerm);
@@ -313,7 +313,7 @@ export default function ClientPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/auth/login', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData)
@@ -345,7 +345,7 @@ export default function ClientPage() {
     }
 
     try {
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/auth/register', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -384,7 +384,7 @@ export default function ClientPage() {
 
   const openBarbershopDetails = async (barbershop: Barbershop) => {
     try {
-      const response = await fetch(`https://barberflow-back-end.onrender.com/api/public/barbershops/${barbershop.id}`);
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershop.id}`);
       const data = await response.json();
       setSelectedBarbershop(data);
       setShowBookingModal(true);
@@ -399,7 +399,7 @@ export default function ClientPage() {
 
       try {
         const response = await fetch(
-          `https://barberflow-back-end.onrender.com/api/public/barbershops/${selectedBarbershop.id}/available-times?date=${selectedDate}&serviceId=${selectedService}&barberId=${selectedBarber}`
+          `https://barberflow-api-v2.onrender.com/api/public/barbershops/${selectedBarbershop.id}/available-times?date=${selectedDate}&serviceId=${selectedService}&barberId=${selectedBarber}`
         );
         const times = await response.json();
         setAvailableTimes(times);
@@ -432,7 +432,7 @@ export default function ClientPage() {
 
     try {
       const token = sessionStorage.getItem('@barberFlow:client:token');
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/appointments', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

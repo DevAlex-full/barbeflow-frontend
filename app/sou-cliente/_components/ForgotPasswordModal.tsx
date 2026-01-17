@@ -20,7 +20,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
     setLoading(true);
 
     try {
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/auth/forgot-password', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

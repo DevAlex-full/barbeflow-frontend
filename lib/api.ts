@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-back-end.onrender.com/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },

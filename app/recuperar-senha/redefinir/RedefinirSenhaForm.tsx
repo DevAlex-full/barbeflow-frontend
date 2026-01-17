@@ -31,7 +31,7 @@ export default function RedefinirSenhaForm() {
 
       try {
         const response = await fetch(
-          `https://barberflow-back-end.onrender.com/api/client/auth/validate-reset-token?token=${token}`
+          `https://barberflow-api-v2.onrender.com/api/client/auth/validate-reset-token?token=${token}`
         );
 
         if (response.ok) {
@@ -69,7 +69,7 @@ export default function RedefinirSenhaForm() {
     setMessage('');
 
     try {
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/client/auth/reset-password', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),

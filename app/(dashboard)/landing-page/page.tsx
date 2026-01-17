@@ -85,7 +85,7 @@ export default function ConfigurarLandingPage() {
 
       console.log('🔄 Carregando configurações...');
 
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -117,7 +117,7 @@ export default function ConfigurarLandingPage() {
 
       console.log('🔄 Salvando configurações...', config);
 
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/barbershop/config', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function ConfigurarLandingPage() {
     setUploading(true);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-back-end.onrender.com/api/upload', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
