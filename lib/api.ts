@@ -1,15 +1,17 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+
+// ✅ URL HARDCODED para garantir funcionamento em produção
+const API_BASE_URL = 'https://barberflow-api-v2.onrender.com/api';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 // Interceptor para adicionar token
-api.interceptors.request.use((config) => {
-  // ✅ CORRIGIDO: Mesma chave do AuthContext
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('@barberFlow:token');
   
   if (token) {
@@ -17,6 +19,11 @@ api.interceptors.request.use((config) => {
     console.log('🔑 Token adicionado na requisição');
   } else {
     console.log('⚠️ Nenhum token encontrado');
+  }
+  
+  // ✅ LOG para debug
+  if (config.baseURL && config.url) {
+    console.log('📡 Request URL:', config.baseURL + config.url);
   }
   
   return config;
@@ -35,7 +42,6 @@ api.interceptors.response.use(
     
     if (error.response?.status === 401) {
       console.log('🚪 Token inválido ou expirado, fazendo logout...');
-      // ✅ CORRIGIDO: Mesmas chaves do AuthContext
       localStorage.removeItem('@barberFlow:token');
       localStorage.removeItem('@barberFlow:user');
       localStorage.removeItem('@barberFlow:barbershop');
