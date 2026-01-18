@@ -222,7 +222,7 @@ export default function RegisterPage() {
             {/* Badge Teste Grátis */}
             <div className="text-center">
               <span className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full">
-                🎉 30 dias de teste grátis
+                🎉 15 dias de teste grátis
               </span>
             </div>
           </form>

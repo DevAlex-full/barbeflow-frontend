@@ -220,7 +220,7 @@ export default function LandingPage() {
             onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
           >
-            Comece Agora - 30 Dias Grátis
+            Comece Agora - 15 Dias Grátis
           </button>
         </div>
       </section>
@@ -354,7 +354,7 @@ export default function LandingPage() {
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-600 to-purple-800 rounded-full flex items-center justify-center shadow-xl">
                 <span className="text-3xl font-bold text-white">3</span>
               </div>
-              <h3 className="font-bold text-xl mb-3 text-gray-900">Teste grátis por 30 dias</h3>
+              <h3 className="font-bold text-xl mb-3 text-gray-900">Teste grátis por 15 dias</h3>
               <p className="text-gray-600 leading-relaxed">
                 Experimente todas as funcionalidades sem compromisso
               </p>
@@ -503,7 +503,7 @@ export default function LandingPage() {
               Selecione a opção e Cadastre-se!
             </h3>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              Experimente todas as funcionalidades grátis por 30 dias, sem compromisso.
+              Experimente todas as funcionalidades grátis por 15 dias, sem compromisso.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-3xl mx-auto">
@@ -531,7 +531,7 @@ export default function LandingPage() {
               {[
                 { 
                   q: "Meu período gratuito (trial) acabou, consigo usar novamente?", 
-                  a: "O período trial de 30 dias é válido apenas uma vez por barbearia. Após o término, você pode escolher um dos nossos planos pagos." 
+                  a: "O período trial de 15 dias é válido apenas uma vez por barbearia. Após o término, você pode escolher um dos nossos planos pagos." 
                 },
                 { 
                   q: "Posso cancelar meu plano a qualquer momento?", 
@@ -575,7 +575,7 @@ export default function LandingPage() {
           </p>
           <Link href="/register">
             <button className="px-12 py-5 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-xl font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
-              Começar Teste Grátis de 30 Dias
+              Começar Teste Grátis de 15 Dias
             </button>
           </Link>
           <p className="text-sm text-gray-500 mt-6">

@@ -41,7 +41,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     }
 
     console.log('🔍 [CLIENT] Verificando autenticação de cliente...');
-    
+
     try {
       // ✅ USA SESSIONSTORAGE PARA CLIENTES PÚBLICOS (diferente de localStorage das barbearias)
       const token = sessionStorage.getItem('@barberFlow:client:token');
@@ -71,8 +71,9 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       console.log('🔐 [CLIENT] Tentando fazer login:', email);
-      
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/login', {
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api';
+      const response = await fetch(`${API_URL}/client/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -101,8 +102,9 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
   async function signUp(data: SignUpData) {
     try {
       console.log('📝 [CLIENT] Tentando criar conta:', data.email);
-      
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/auth/register', {
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api';
+      const response = await fetch(`${API_URL}/client/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -130,7 +132,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
   function signOut() {
     console.log('👋 [CLIENT] Fazendo logout...');
-    
+
     sessionStorage.removeItem('@barberFlow:client:token');
     sessionStorage.removeItem('@barberFlow:client:user');
 
@@ -138,14 +140,14 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ClientAuthContext.Provider 
-      value={{ 
-        client, 
-        loading, 
-        signIn, 
-        signUp, 
+    <ClientAuthContext.Provider
+      value={{
+        client,
+        loading,
+        signIn,
+        signUp,
         signOut,
-        isAuthenticated: !!client 
+        isAuthenticated: !!client
       }}
     >
       {children}

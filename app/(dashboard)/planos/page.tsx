@@ -352,9 +352,9 @@ export default function PlansPage() {
             <Check className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
           </div>
           <div>
-            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">Garantia de 30 dias</h3>
+            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">Garantia de 15 dias</h3>
             <p className="text-gray-700 text-xs md:text-sm">
-              Não gostou? Cancele dentro de 30 dias e receba reembolso total.
+              Não gostou? Cancele dentro de 15 dias e receba reembolso total.
             </p>
           </div>
         </div>
