@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAuthorized, setIsAuthorized] = useState(false); // ✅ NOVO
 
   const ADMIN_EMAILS = [
-    'alex.zila@hotmail.com',
+    'alex.bueno22@hotmail.com',
     'appbarberflow@gmail.com'
   ];
 
