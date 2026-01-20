@@ -63,7 +63,7 @@ export default function BarbershopLanding() {
   const params = useParams();
   const router = useRouter();
   const barbershopId = params?.id as string;
-  const { client, isAuthenticated } = useClientAuth();
+  const { client, isAuthenticated, loading: authLoading } = useClientAuth();
 
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -83,6 +83,16 @@ export default function BarbershopLanding() {
   const [bookingError, setBookingError] = useState('');
   const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  // ✅ FIX: Adicionar console.log para debug do estado de autenticação
+  useEffect(() => {
+    console.log('🔍 [Landing] Estado de autenticação:', {
+      isAuthenticated,
+      hasClient: !!client,
+      clientName: client?.name,
+      authLoading
+    });
+  }, [isAuthenticated, client, authLoading]);
 
   // ✅ Verificar se está aberto agora
   useEffect(() => {
@@ -411,10 +421,12 @@ export default function BarbershopLanding() {
             </Link>
 
             <div className="flex items-center gap-3">
-              {isAuthenticated && client ? (
+              {!authLoading && isAuthenticated && client ? ( 
                 <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/30">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-sm font-medium text-green-300 hidden sm:inline">{client.name.split(' ')[0]}</span>
+                  <span className="text-sm font-medium text-green-300 hidden sm:inline">
+                    {client.name.split(' ')[0]}
+                  </span>
                 </div>
               ) : (
                 <Link href="/sou-cliente">
