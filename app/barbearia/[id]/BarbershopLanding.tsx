@@ -85,54 +85,54 @@ export default function BarbershopLanding() {
   const [isOpen, setIsOpen] = useState(false);
 
   // ✅ Verificar se está aberto agora
-useEffect(() => {
-  const checkIfOpen = () => {
-    const now = new Date();
-    const dayMap: Record<number, string> = {
-      0: 'sunday',
-      1: 'monday',
-      2: 'tuesday',
-      3: 'wednesday',
-      4: 'thursday',
-      5: 'friday',
-      6: 'saturday'
-    };
-    const today = dayMap[now.getDay()];
-    
-    // ✅ Usar os businessHours com fallback
-    const businessHours = barbershop?.config?.businessHours || {
-      monday: '09:00-20:00',
-      tuesday: '09:00-20:00',
-      wednesday: '09:00-20:00',
-      thursday: '09:00-20:00',
-      friday: '09:00-20:00',
-      saturday: '09:00-18:00',
-      sunday: 'Fechado'
-    };
-    
-    const hours = businessHours[today];
-    
-    if (!hours || hours.toLowerCase() === 'fechado') {
-      setIsOpen(false);
-      return;
-    }
+  useEffect(() => {
+    const checkIfOpen = () => {
+      const now = new Date();
+      const dayMap: Record<number, string> = {
+        0: 'sunday',
+        1: 'monday',
+        2: 'tuesday',
+        3: 'wednesday',
+        4: 'thursday',
+        5: 'friday',
+        6: 'saturday'
+      };
+      const today = dayMap[now.getDay()];
 
-    const [start, end] = hours.split('-');
-    if (start && end) {
-      const [startH, startM] = start.split(':').map(Number);
-      const [endH, endM] = end.split(':').map(Number);
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-      
-      setIsOpen(currentMinutes >= startMinutes && currentMinutes <= endMinutes);
-    }
-  };
+      // ✅ Usar os businessHours com fallback
+      const businessHours = barbershop?.config?.businessHours || {
+        monday: '09:00-20:00',
+        tuesday: '09:00-20:00',
+        wednesday: '09:00-20:00',
+        thursday: '09:00-20:00',
+        friday: '09:00-20:00',
+        saturday: '09:00-18:00',
+        sunday: 'Fechado'
+      };
 
-  checkIfOpen();
-  const interval = setInterval(checkIfOpen, 60000);
-  return () => clearInterval(interval);
-}, [barbershop]); // ✅ Depende só do barbershop
+      const hours = businessHours[today];
+
+      if (!hours || hours.toLowerCase() === 'fechado') {
+        setIsOpen(false);
+        return;
+      }
+
+      const [start, end] = hours.split('-');
+      if (start && end) {
+        const [startH, startM] = start.split(':').map(Number);
+        const [endH, endM] = end.split(':').map(Number);
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const startMinutes = startH * 60 + startM;
+        const endMinutes = endH * 60 + endM;
+
+        setIsOpen(currentMinutes >= startMinutes && currentMinutes <= endMinutes);
+      }
+    };
+
+    checkIfOpen();
+    const interval = setInterval(checkIfOpen, 60000);
+    return () => clearInterval(interval);
+  }, [barbershop]); // ✅ Depende só do barbershop
 
   const config: BarbershopConfig = barbershop?.config || {
     primaryColor: '#6366f1',
@@ -409,7 +409,7 @@ useEffect(() => {
                 <span className="font-medium">Voltar</span>
               </button>
             </Link>
-            
+
             <div className="flex items-center gap-3">
               {isAuthenticated && client ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/30">
@@ -474,7 +474,7 @@ useEffect(() => {
           </div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-white animate-shine">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-indigo-200">
               {config.heroTitle || barbershop.name}
             </span>
           </h1>
@@ -653,7 +653,7 @@ useEffect(() => {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-sm text-gray-400 mb-1">A partir de</p>
-                      <p className="text-3xl font-black bg-clip-text text-transparent bg-gradient-primary">
+                      <p className="text-3xl font-black text-indigo-400">
                         R$ {Number(service.price).toFixed(2)}
                       </p>
                     </div>
@@ -925,7 +925,7 @@ useEffect(() => {
                 <p className="text-sm text-gray-400">Excelência em Barbearia</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-6 text-sm text-gray-400">
               <a href={`tel:${barbershop.phone}`} className="hover:text-white transition">
                 {barbershop.phone}
@@ -991,17 +991,15 @@ useEffect(() => {
                 <div className="flex items-center justify-center mb-10">
                   {[1, 2, 3].map((step) => (
                     <div key={step} className="flex items-center">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all duration-300 ${
-                        bookingStep >= step 
-                          ? 'bg-gradient-primary scale-110' 
-                          : 'bg-white/5'
-                      }`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all duration-300 ${bookingStep >= step
+                        ? 'bg-gradient-primary scale-110'
+                        : 'bg-white/5'
+                        }`}>
                         {bookingStep > step ? <CheckCircle className="w-6 h-6" /> : step}
                       </div>
                       {step < 3 && (
-                        <div className={`w-20 h-1 transition-all duration-300 ${
-                          bookingStep > step ? 'bg-gradient-primary' : 'bg-white/10'
-                        }`} />
+                        <div className={`w-20 h-1 transition-all duration-300 ${bookingStep > step ? 'bg-gradient-primary' : 'bg-white/10'
+                          }`} />
                       )}
                     </div>
                   ))}
@@ -1016,11 +1014,10 @@ useEffect(() => {
                         <button
                           key={barber.id}
                           onClick={() => setSelectedBarber(barber.id)}
-                          className={`p-6 rounded-2xl border-2 transition-all duration-300 text-left ${
-                            selectedBarber === barber.id
-                              ? 'border-indigo-500 bg-indigo-500/10 scale-105'
-                              : 'border-white/10 hover:border-white/20 hover:bg-white/5'
-                          }`}
+                          className={`p-6 rounded-2xl border-2 transition-all duration-300 text-left ${selectedBarber === barber.id
+                            ? 'border-indigo-500 bg-indigo-500/10 scale-105'
+                            : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                            }`}
                         >
                           <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
@@ -1032,7 +1029,7 @@ useEffect(() => {
                               <p className="font-bold text-lg truncate">{barber.name}</p>
                               <p className="text-gray-400 text-sm">Especialista</p>
                               <div className="flex items-center gap-1 mt-1">
-                                {[1,2,3,4,5].map(s => (
+                                {[1, 2, 3, 4, 5].map(s => (
                                   <Star key={s} className="w-3 h-3 fill-yellow-500 text-yellow-500" />
                                 ))}
                               </div>
@@ -1108,11 +1105,10 @@ useEffect(() => {
                             <button
                               key={time}
                               onClick={() => setSelectedTime(time)}
-                              className={`py-4 rounded-xl font-medium transition-all duration-300 ${
-                                selectedTime === time
-                                  ? 'bg-gradient-primary text-white scale-105'
-                                  : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
-                              }`}
+                              className={`py-4 rounded-xl font-medium transition-all duration-300 ${selectedTime === time
+                                ? 'bg-gradient-primary text-white scale-105'
+                                : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                                }`}
                             >
                               {new Date(time).toLocaleTimeString('pt-BR', {
                                 hour: '2-digit',
@@ -1189,7 +1185,7 @@ useEffect(() => {
 
       {/* Lightbox para Galeria */}
       {selectedImageIndex !== null && config.galleryImages && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedImageIndex(null)}
         >
