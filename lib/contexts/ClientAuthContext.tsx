@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Client {
   id: string;
@@ -33,23 +33,18 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Adicionar pathname para detectar mudanças de rota
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
-
-    console.log('🔍 [CLIENT] Verificando autenticação de cliente...');
-
+  // ✅ FIX: Função para carregar cliente do sessionStorage
+  const loadClientFromStorage = () => {
     try {
-      // ✅ USA SESSIONSTORAGE PARA CLIENTES PÚBLICOS (diferente de localStorage das barbearias)
       const token = sessionStorage.getItem('@barberFlow:client:token');
       const storedClient = sessionStorage.getItem('@barberFlow:client:user');
 
-      console.log('📦 [CLIENT] Dados do sessionStorage:', {
+      console.log('🔍 [CLIENT] Verificando autenticação...', {
         hasToken: !!token,
-        hasClient: !!storedClient
+        hasClient: !!storedClient,
+        pathname
       });
 
       if (token && storedClient) {
@@ -57,15 +52,47 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
         setClient(clientData);
         console.log('✅ [CLIENT] Cliente autenticado:', clientData.email);
       } else {
+        setClient(null);
         console.log('⚠️ [CLIENT] Nenhum cliente autenticado');
       }
     } catch (error) {
       console.error('❌ [CLIENT] Erro ao carregar dados:', error);
       sessionStorage.removeItem('@barberFlow:client:token');
       sessionStorage.removeItem('@barberFlow:client:user');
-    } finally {
-      setLoading(false);
+      setClient(null);
     }
+  };
+
+  // ✅ FIX: Carregar na montagem inicial
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    loadClientFromStorage();
+    setLoading(false);
+  }, []);
+
+  // ✅ FIX: Recarregar quando a rota mudar (SPA navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !loading) {
+      console.log('🔄 [CLIENT] Rota mudou, verificando autenticação...', pathname);
+      loadClientFromStorage();
+    }
+  }, [pathname]); // ✅ Dispara quando muda de página
+
+  // ✅ FIX: Listener para mudanças no sessionStorage (entre abas)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === '@barberFlow:client:token' || e.key === '@barberFlow:client:user') {
+        console.log('🔄 [CLIENT] SessionStorage mudou, recarregando...');
+        loadClientFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   async function signIn(email: string, password: string) {
@@ -88,7 +115,6 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ [CLIENT] Login bem-sucedido:', clientData.email);
 
-      // ✅ SALVA NO SESSIONSTORAGE (não no localStorage)
       sessionStorage.setItem('@barberFlow:client:token', token);
       sessionStorage.setItem('@barberFlow:client:user', JSON.stringify(clientData));
 
@@ -101,7 +127,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(data: SignUpData) {
     try {
-      console.log('📝 [CLIENT] Tentando criar conta:', data.email);
+      console.log('🔐 [CLIENT] Tentando criar conta:', data.email);
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api';
       const response = await fetch(`${API_URL}/client/auth/register`, {
@@ -119,7 +145,6 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ [CLIENT] Cadastro bem-sucedido:', clientData.email);
 
-      // ✅ SALVA NO SESSIONSTORAGE
       sessionStorage.setItem('@barberFlow:client:token', token);
       sessionStorage.setItem('@barberFlow:client:user', JSON.stringify(clientData));
 
