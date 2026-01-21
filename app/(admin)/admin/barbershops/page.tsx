@@ -114,7 +114,7 @@ export default function BarbershopsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Nome ou email da barbearia..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
             />
           </div>
 
@@ -129,7 +129,7 @@ export default function BarbershopsPage() {
                 setPlanFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
             >
               <option value="all">Todos</option>
               <option value="trial">Trial</option>
@@ -151,7 +151,7 @@ export default function BarbershopsPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
             >
               <option value="all">Todos</option>
               <option value="active">Ativo</option>
