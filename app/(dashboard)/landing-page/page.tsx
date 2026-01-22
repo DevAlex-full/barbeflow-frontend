@@ -5,7 +5,7 @@ import {
   Save, Eye, Palette, Image as ImageIcon, Info, Clock, 
   Share2, Settings, Upload, X, Plus, Trash2, Instagram,
   Facebook, MessageCircle, Youtube, CheckCircle, AlertCircle,
-  ExternalLink, Globe, Sparkles, Zap, TrendingUp, Award
+  ExternalLink, Globe, Sparkles, Zap, TrendingUp, Award, Users
 } from 'lucide-react';
 
 interface ConfigData {
@@ -27,6 +27,19 @@ interface ConfigData {
   allowOnlineBooking: boolean;
 }
 
+interface Barber {
+  id: string;
+  name: string;
+  avatar: string | null;
+  email: string;
+}
+
+interface Barbershop {
+  id: string;
+  name: string;
+  logo: string | null;
+}
+
 export default function ConfigurarLandingPage() {
   const [activeTab, setActiveTab] = useState('hero');
   const [saving, setSaving] = useState(false);
@@ -34,6 +47,9 @@ export default function ConfigurarLandingPage() {
   const [uploading, setUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [barbershopId, setBarbershopId] = useState('');
+  const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
+  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [uploadingAvatar, setUploadingAvatar] = useState<string | null>(null);
   
   const [config, setConfig] = useState<ConfigData>({
     heroImage: '',
@@ -64,6 +80,7 @@ export default function ConfigurarLandingPage() {
 
   useEffect(() => {
     loadConfig();
+    loadBarbers();
   }, []);
 
   const loadConfig = async () => {
@@ -79,28 +96,53 @@ export default function ConfigurarLandingPage() {
 
       if (userStr) {
         const user = JSON.parse(userStr);
-        console.log('👤 Usuário:', user);
         setBarbershopId(user.barbershopId);
       }
 
-      console.log('🔄 Carregando configurações...');
-
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
+      // Carregar configurações
+      const configResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Configurações carregadas:', data);
+      if (configResponse.ok) {
+        const data = await configResponse.json();
         setConfig({ ...config, ...data });
-      } else {
-        const error = await response.json();
-        console.error('❌ Erro:', error);
       }
+
+      // Carregar dados da barbearia (logo)
+      const barbershopResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (barbershopResponse.ok) {
+        const data = await barbershopResponse.json();
+        setBarbershop(data);
+      }
+
     } catch (error) {
-      console.error('❌ Erro na requisição:', error);
+      console.error('❌ Erro ao carregar:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBarbers = async () => {
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      if (!token) return;
+
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Filtrar apenas barbeiros (role: barber)
+        const barbersOnly = data.filter((user: any) => user.role === 'barber' || user.role === 'admin');
+        setBarbers(barbersOnly);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar barbeiros:', error);
     }
   };
 
@@ -115,8 +157,6 @@ export default function ConfigurarLandingPage() {
         return;
       }
 
-      console.log('🔄 Salvando configurações...', config);
-
       const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         method: 'PUT',
         headers: {
@@ -129,18 +169,88 @@ export default function ConfigurarLandingPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('✅ Configurações salvas:', data);
         setSuccessMessage('✅ Configurações salvas com sucesso!');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        console.error('❌ Erro ao salvar:', data);
         alert(`❌ Erro: ${data.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
-      console.error('❌ Erro na requisição:', error);
+      console.error('❌ Erro:', error);
       alert('❌ Erro ao salvar. Verifique sua conexão.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Arquivo muito grande. Máximo 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    setUploading(true);
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload/barbershop-logo', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const { logoUrl } = await response.json();
+        setBarbershop(prev => prev ? { ...prev, logo: logoUrl } : null);
+        alert('✅ Logo atualizado com sucesso!');
+      } else {
+        alert('❌ Erro ao enviar logo');
+      }
+    } catch (error) {
+      alert('❌ Erro ao enviar logo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, barberId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Arquivo muito grande. Máximo 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploadingAvatar(barberId);
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload/user-avatar', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const { avatarUrl } = await response.json();
+        setBarbers(prev => prev.map(b => 
+          b.id === barberId ? { ...b, avatar: avatarUrl } : b
+        ));
+        alert('✅ Avatar atualizado com sucesso!');
+      } else {
+        alert('❌ Erro ao enviar avatar');
+      }
+    } catch (error) {
+      alert('❌ Erro ao enviar avatar');
+    } finally {
+      setUploadingAvatar(null);
     }
   };
 
@@ -202,7 +312,8 @@ export default function ConfigurarLandingPage() {
     { id: 'gallery', label: 'Galeria', icon: ImageIcon, color: 'pink' },
     { id: 'hours', label: 'Horários', icon: Clock, color: 'green' },
     { id: 'social', label: 'Redes Sociais', icon: Share2, color: 'orange' },
-    { id: 'design', label: 'Design', icon: Palette, color: 'red' },
+    { id: 'design', label: 'Design & Logo', icon: Palette, color: 'red' },
+    { id: 'team', label: 'Equipe', icon: Users, color: 'cyan' },
     { id: 'features', label: 'Funcionalidades', icon: Settings, color: 'indigo' }
   ];
 
@@ -216,7 +327,6 @@ export default function ConfigurarLandingPage() {
     sunday: 'Domingo'
   };
 
-  // ✅ Loading state enquanto carrega configurações
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center">
@@ -273,7 +383,6 @@ export default function ConfigurarLandingPage() {
             </div>
           </div>
 
-          {/* Success Message com animação */}
           {successMessage && (
             <div className="mt-4 flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-xl shadow-lg animate-in slide-in-from-top">
               <CheckCircle className="w-5 h-5" />
@@ -495,7 +604,6 @@ export default function ConfigurarLandingPage() {
                     />
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-xs text-gray-500">
-                        {/* ✅ FIX: Safe access com optional chaining e fallback */}
                         {(config.description || '').length} caracteres
                       </p>
                       <p className="text-xs text-gray-400">
@@ -618,7 +726,7 @@ export default function ConfigurarLandingPage() {
                       <li>• Para dias fechados, escreva "Fechado"</li>
                       <li>• Horário de almoço: "09:00-12:00, 14:00-20:00"</li>
                     </ul>
-                    </div>
+                  </div>
                 </div>
               )}
 
@@ -722,7 +830,7 @@ export default function ConfigurarLandingPage() {
                 </div>
               )}
 
-              {/* Design */}
+              {/* Design & Logo */}
               {activeTab === 'design' && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 mb-6">
@@ -732,11 +840,77 @@ export default function ConfigurarLandingPage() {
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900">Personalização Visual</h2>
                       <p className="text-gray-600 text-sm mt-1">
-                        Escolha as cores da sua identidade visual
+                        Logo e cores da sua identidade visual
                       </p>
                     </div>
                   </div>
 
+                  {/* Upload de Logo */}
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-6 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Upload className="w-6 h-6 text-indigo-600" />
+                      <h3 className="font-bold text-lg text-gray-900">Logo da Barbearia</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Esta logo será exibida nos cards de serviços, horários e como fallback para barbeiros sem avatar.
+                    </p>
+                    
+                    <div className="border-2 border-dashed border-indigo-300 rounded-xl p-6 text-center hover:border-indigo-400 hover:bg-indigo-50/50 transition-all">
+                      {barbershop?.logo ? (
+                        <div className="relative group">
+                          <div className="flex justify-center mb-4">
+                            <img 
+                              src={barbershop.logo} 
+                              alt="Logo" 
+                              className="h-32 w-32 object-contain rounded-xl shadow-lg border-2 border-gray-200" 
+                            />
+                          </div>
+                          <div className="flex gap-3 justify-center">
+                            <label className="cursor-pointer px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-sm">
+                              Trocar Logo
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLogoUpload}
+                                disabled={uploading}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block">
+                          {uploading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+                              <p className="text-gray-700 font-medium">Enviando...</p>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-400" />
+                              <p className="text-gray-700 font-medium mb-2">Clique para fazer upload do logo</p>
+                              <p className="text-gray-500 text-sm">PNG, JPG até 5MB • Recomendado: 512x512px</p>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <p className="text-xs text-yellow-800">
+                        <strong>⚠️ Importante:</strong> Se você não fizer upload do logo, a logo padrão do BarberFlow (/Logo1.png) será exibida.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cores */}
                   <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 mb-6">
                     <div className="flex gap-3">
                       <Award className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -867,6 +1041,98 @@ export default function ConfigurarLandingPage() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Equipe (NOVA ABA) */}
+              {activeTab === 'team' && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-cyan-100 rounded-xl">
+                      <Users className="w-6 h-6 text-cyan-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Gerenciar Equipe</h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        Personalize os avatares dos profissionais
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-4 mb-6">
+                    <div className="flex gap-3">
+                      <Sparkles className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-cyan-900 font-medium mb-1">
+                          Personalize Sua Equipe
+                        </p>
+                        <p className="text-xs text-cyan-700">
+                          Fotos reais dos profissionais aumentam a confiança dos clientes. Se não houver foto, a logo da barbearia será exibida.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {barbers.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Nenhum barbeiro cadastrado ainda</p>
+                    </div>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {barbers.map((barber) => (
+                        <div key={barber.id} className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
+                          <div className="flex items-start gap-4">
+                            <div className="relative flex-shrink-0">
+                              <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-gray-300 bg-gray-100">
+                                {barber.avatar ? (
+                                  <img 
+                                    src={barber.avatar} 
+                                    alt={barber.name} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 text-gray-500 text-2xl">
+                                    👤
+                                  </div>
+                                )}
+                              </div>
+                              {uploadingAvatar === barber.id && (
+                                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-lg text-gray-900 truncate">{barber.name}</h3>
+                              <p className="text-sm text-gray-500 truncate mb-3">{barber.email}</p>
+                              
+                              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg transition font-medium text-sm shadow-md">
+                                <Upload className="w-4 h-4" />
+                                {barber.avatar ? 'Trocar Foto' : 'Adicionar Foto'}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleAvatarUpload(e, barber.id)}
+                                  disabled={uploadingAvatar === barber.id}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          {!barber.avatar && (
+                            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                              <p className="text-xs text-yellow-800">
+                                <strong>⚠️ Sem foto:</strong> A logo da barbearia será exibida como fallback.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
