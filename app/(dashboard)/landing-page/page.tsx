@@ -232,7 +232,8 @@ export default function ConfigurarLandingPage() {
     setUploadingAvatar(barberId);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload/user-avatar', {
+      // ✅ FIX: Passar barberId na URL
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/upload/user-avatar/${barberId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -245,9 +246,11 @@ export default function ConfigurarLandingPage() {
         ));
         alert('✅ Avatar atualizado com sucesso!');
       } else {
-        alert('❌ Erro ao enviar avatar');
+        const error = await response.json();
+        alert(`❌ Erro: ${error.error || 'Erro ao enviar avatar'}`);
       }
     } catch (error) {
+      console.error('❌ Erro:', error);
       alert('❌ Erro ao enviar avatar');
     } finally {
       setUploadingAvatar(null);
