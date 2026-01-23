@@ -84,7 +84,6 @@ export default function BarbershopLanding() {
   const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // ✅ FIX: Adicionar console.log para debug do estado de autenticação
   useEffect(() => {
     console.log('🔍 [Landing] Estado de autenticação:', {
       isAuthenticated,
@@ -94,7 +93,6 @@ export default function BarbershopLanding() {
     });
   }, [isAuthenticated, client, authLoading]);
 
-  // ✅ Verificar se está aberto agora
   useEffect(() => {
     const checkIfOpen = () => {
       const now = new Date();
@@ -109,7 +107,6 @@ export default function BarbershopLanding() {
       };
       const today = dayMap[now.getDay()];
 
-      // ✅ Usar os businessHours com fallback
       const businessHours = barbershop?.config?.businessHours || {
         monday: '09:00-20:00',
         tuesday: '09:00-20:00',
@@ -142,7 +139,7 @@ export default function BarbershopLanding() {
     checkIfOpen();
     const interval = setInterval(checkIfOpen, 60000);
     return () => clearInterval(interval);
-  }, [barbershop]); // ✅ Depende só do barbershop
+  }, [barbershop]);
 
   const config: BarbershopConfig = barbershop?.config || {
     primaryColor: '#6366f1',
@@ -449,7 +446,6 @@ export default function BarbershopLanding() {
 
       {/* Hero Ultra Premium */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {/* Background com Parallax Effect */}
         <div className="absolute inset-0 z-0">
           {config.heroImage ? (
             <>
@@ -463,14 +459,12 @@ export default function BarbershopLanding() {
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900" />
           )}
-          {/* Overlay Pattern */}
           <div className="absolute inset-0 opacity-10" style={{
             backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
             backgroundSize: '32px 32px'
           }} />
         </div>
 
-        {/* Floating Elements */}
         <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
           <Scissors className="absolute top-1/4 left-10 w-16 h-16 text-indigo-500/20 animate-float" style={{ animationDelay: '0s' }} />
           <Star className="absolute top-1/3 right-20 w-12 h-12 text-purple-500/20 animate-float" style={{ animationDelay: '1s' }} />
@@ -517,7 +511,6 @@ export default function BarbershopLanding() {
             </div>
           )}
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16">
             {[
               { icon: Users, value: '500+', label: 'Clientes' },
@@ -535,7 +528,6 @@ export default function BarbershopLanding() {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
         <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
           <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
             <div className="w-1 h-3 bg-white/50 rounded-full animate-pulse" />
@@ -587,7 +579,7 @@ export default function BarbershopLanding() {
         </div>
       </section>
 
-      {/* Sobre - Design Moderno */}
+      {/* Sobre */}
       {config.description && (
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
@@ -605,7 +597,7 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Serviços - Cards Premium */}
+      {/* Serviços - Cards Premium com LOGO */}
       <section id="services" className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -645,8 +637,21 @@ export default function BarbershopLanding() {
                         </p>
                       )}
                     </div>
-                    <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center ml-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0">
-                      <Scissors className="w-8 h-8" />
+                    {/* ✅ SUBSTITUIÇÃO: Ícone de tesoura → Logo */}
+                    <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center ml-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0 overflow-hidden">
+                      {barbershop.logo ? (
+                        <img 
+                          src={barbershop.logo} 
+                          alt="Logo" 
+                          className="w-full h-full object-contain p-2"
+                        />
+                      ) : (
+                        <img 
+                          src="/Logo1.png" 
+                          alt="BarberFlow" 
+                          className="w-full h-full object-contain p-2"
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -686,7 +691,7 @@ export default function BarbershopLanding() {
         </div>
       </section>
 
-      {/* Equipe - Design Circular */}
+      {/* Equipe - Design Circular com AVATARES */}
       {config.showTeam && barbers.length > 0 && (
         <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white/5 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto">
@@ -713,16 +718,25 @@ export default function BarbershopLanding() {
                   <div className="relative mb-6 mx-auto w-32 h-32 sm:w-40 sm:h-40">
                     <div className="absolute inset-0 bg-gradient-primary rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 opacity-60" />
                     <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white/20 group-hover:border-indigo-500/50 transition-all duration-300 group-hover:scale-110">
+                      {/* ✅ SUBSTITUIÇÃO: Emoji → Avatar ou Logo */}
                       {barber.avatar ? (
                         <img
                           src={barber.avatar}
                           alt={barber.name}
                           className="w-full h-full object-cover"
                         />
+                      ) : barbershop.logo ? (
+                        <img
+                          src={barbershop.logo}
+                          alt={barber.name}
+                          className="w-full h-full object-contain p-4 bg-gradient-primary"
+                        />
                       ) : (
-                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center text-4xl">
-                          👨‍💼
-                        </div>
+                        <img
+                          src="/Logo1.png"
+                          alt={barber.name}
+                          className="w-full h-full object-contain p-4 bg-gradient-primary"
+                        />
                       )}
                     </div>
                     <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-full border-4 border-slate-950 flex items-center justify-center">
@@ -745,7 +759,7 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Galeria - Grid Masonry */}
+      {/* Galeria */}
       {config.showGallery && config.galleryImages && config.galleryImages.length > 0 && (
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
@@ -784,7 +798,7 @@ export default function BarbershopLanding() {
         </section>
       )}
 
-      {/* Horários - Design Tabela Premium */}
+      {/* Horários - Design Tabela Premium com LOGO */}
       <section id="hours" className="py-24 px-4 sm:px-6 lg:px-8 bg-white/5 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
@@ -808,8 +822,21 @@ export default function BarbershopLanding() {
                   className="flex items-center justify-between py-4 px-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all duration-300 group"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Clock className="w-6 h-6" />
+                    {/* ✅ SUBSTITUIÇÃO: Ícone de relógio → Logo */}
+                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
+                      {barbershop.logo ? (
+                        <img 
+                          src={barbershop.logo} 
+                          alt="Logo" 
+                          className="w-full h-full object-contain p-2"
+                        />
+                      ) : (
+                        <img 
+                          src="/Logo1.png" 
+                          alt="BarberFlow" 
+                          className="w-full h-full object-contain p-2"
+                        />
+                      )}
                     </div>
                     <span className="font-bold text-lg">{formatBusinessHours(day)}</span>
                   </div>
@@ -823,7 +850,7 @@ export default function BarbershopLanding() {
         </div>
       </section>
 
-      {/* Redes Sociais - Floating Buttons */}
+      {/* Redes Sociais */}
       {(config.instagramUrl || config.facebookUrl || config.whatsappNumber || config.youtubeUrl) && (
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
@@ -958,7 +985,7 @@ export default function BarbershopLanding() {
         </div>
       </footer>
 
-      {/* Modal de Agendamento - Ultra Moderno */}
+      {/* Modal de Agendamento */}
       {showBookingModal && selectedService && config.allowOnlineBooking && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl my-4">
@@ -999,7 +1026,6 @@ export default function BarbershopLanding() {
                   </div>
                 )}
 
-                {/* Progress */}
                 <div className="flex items-center justify-center mb-10">
                   {[1, 2, 3].map((step) => (
                     <div key={step} className="flex items-center">
@@ -1017,7 +1043,6 @@ export default function BarbershopLanding() {
                   ))}
                 </div>
 
-                {/* Step 1: Barbeiro */}
                 {bookingStep === 1 && (
                   <div className="space-y-6">
                     <h3 className="font-bold text-xl mb-4">Escolha o Profissional</h3>
@@ -1035,7 +1060,11 @@ export default function BarbershopLanding() {
                             <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                               {barber.avatar ? (
                                 <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover" />
-                              ) : '👨‍💼'}
+                              ) : barbershop.logo ? (
+                                <img src={barbershop.logo} alt={barber.name} className="w-full h-full object-contain p-2" />
+                              ) : (
+                                <img src="/Logo1.png" alt={barber.name} className="w-full h-full object-contain p-2" />
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-lg truncate">{barber.name}</p>
@@ -1060,7 +1089,6 @@ export default function BarbershopLanding() {
                   </div>
                 )}
 
-                {/* Step 2: Data */}
                 {bookingStep === 2 && (
                   <div className="space-y-6">
                     <h3 className="font-bold text-xl mb-4">Escolha a Data</h3>
@@ -1089,7 +1117,6 @@ export default function BarbershopLanding() {
                   </div>
                 )}
 
-                {/* Step 3: Horário */}
                 {bookingStep === 3 && (
                   <div className="space-y-6">
                     <h3 className="font-bold text-xl mb-4">Escolha o Horário</h3>
@@ -1130,7 +1157,6 @@ export default function BarbershopLanding() {
                           ))}
                         </div>
 
-                        {/* Resumo */}
                         <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
                           <h4 className="font-bold mb-4 text-lg">Resumo</h4>
                           <div className="space-y-3 text-sm">
