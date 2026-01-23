@@ -9,13 +9,15 @@ import { MobileCard, MobileCardItem, MobileCardActions } from '@/components/ui/M
 import { ResponsiveModal, ModalActions } from '@/components/ui/ResponsiveModal';
 import { cn } from '@/lib/utils/cn';
 
+// ✅ FIX: Interface atualizada para suportar customer OU client
 interface Appointment {
   id: string;
   date: string;
   status: string;
   notes?: string;
   price: number;
-  customer: { id: string; name: string; phone: string };
+  customer?: { id: string; name: string; phone: string } | null;
+  client?: { id: string; name: string; phone: string } | null;
   barber: { id: string; name: string };
   service: { id: string; name: string; duration: number };
 }
@@ -23,6 +25,11 @@ interface Appointment {
 interface Customer { id: string; name: string; }
 interface Service { id: string; name: string; price: number; duration: number; active?: boolean; }
 interface Barber { id: string; name: string; }
+
+// ✅ FIX: Helper para obter o cliente (customer ou client)
+function getClient(appointment: Appointment) {
+  return appointment.customer || appointment.client || { id: '', name: 'Cliente não identificado', phone: '' };
+}
 
 export default function AgendamentosPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -79,8 +86,9 @@ export default function AgendamentosPage() {
     if (appointment) {
       setEditingAppointment(appointment);
       const appointmentDate = new Date(appointment.date);
+      const client = getClient(appointment);
       setFormData({
-        customerId: appointment.customer.id,
+        customerId: client.id,
         serviceId: appointment.service.id,
         barberId: appointment.barber.id,
         date: format(appointmentDate, 'yyyy-MM-dd'),
@@ -280,7 +288,6 @@ export default function AgendamentosPage() {
           </div>
         </div>
 
-        {/* Mobile: Scroll horizontal */}
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           <div className="min-w-[640px] md:min-w-0">
             <div className="grid grid-cols-7 gap-2">
@@ -355,6 +362,8 @@ export default function AgendamentosPage() {
             <div className="hidden md:block space-y-4">
               {todayAppointments.map((appointment) => {
                 const statusConfig = statusColors[appointment.status];
+                const client = getClient(appointment);
+                
                 return (
                   <div
                     key={appointment.id}
@@ -364,11 +373,11 @@ export default function AgendamentosPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="bg-gradient-to-br from-purple-500 to-blue-500 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                            {appointment.customer.name.charAt(0)}
+                            {client.name.charAt(0)}
                           </div>
                           <div>
-                            <h3 className="font-bold text-lg text-gray-900">{appointment.customer.name}</h3>
-                            <p className="text-sm text-gray-600">{appointment.customer.phone}</p>
+                            <h3 className="font-bold text-lg text-gray-900">{client.name}</h3>
+                            <p className="text-sm text-gray-600">{client.phone}</p>
                           </div>
                         </div>
 
@@ -458,14 +467,16 @@ export default function AgendamentosPage() {
             <div className="md:hidden space-y-3">
               {todayAppointments.map((appointment) => {
                 const statusConfig = statusColors[appointment.status];
+                const client = getClient(appointment);
+                
                 return (
                   <MobileCard key={appointment.id}>
                     <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                        {appointment.customer.name.charAt(0)}
+                        {client.name.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 truncate">{appointment.customer.name}</h3>
+                        <h3 className="font-bold text-gray-900 truncate">{client.name}</h3>
                         <span className={cn('inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1', statusConfig.bg, statusConfig.text)}>
                           {statusConfig.label}
                         </span>
