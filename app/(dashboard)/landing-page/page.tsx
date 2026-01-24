@@ -131,15 +131,28 @@ export default function ConfigurarLandingPage() {
       const token = localStorage.getItem('@barberFlow:token');
       if (!token) return;
 
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/users', {
+      // ✅ FIX: Usar /barbershop ao invés de /barbershop/users
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Filtrar apenas barbeiros (role: barber)
-        const barbersOnly = data.filter((user: any) => user.role === 'barber' || user.role === 'admin');
+        console.log('📊 Dados da barbearia:', data);
+        
+        // ✅ FIX: Pegar users de dentro da resposta
+        const users = data.users || [];
+        console.log('👥 Usuários encontrados:', users);
+        
+        // Filtrar apenas barbeiros e admins
+        const barbersOnly = users.filter((user: any) => 
+          user.role === 'barber' || user.role === 'admin'
+        );
+        
+        console.log('💈 Barbeiros filtrados:', barbersOnly);
         setBarbers(barbersOnly);
+      } else {
+        console.error('❌ Erro na resposta:', response.status);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar barbeiros:', error);
@@ -1077,9 +1090,15 @@ export default function ConfigurarLandingPage() {
                   </div>
 
                   {barbers.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                       <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Nenhum barbeiro cadastrado ainda</p>
+                      <p className="text-gray-600 font-medium mb-2">Nenhum profissional cadastrado ainda</p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Cadastre barbeiros na seção de usuários para gerenciar os avatares aqui
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        💡 Dica: Vá em <strong>Configurações → Usuários</strong> para adicionar profissionais
+                      </p>
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-4">
