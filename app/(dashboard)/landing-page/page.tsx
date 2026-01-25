@@ -5,7 +5,8 @@ import {
   Save, Eye, Palette, Image as ImageIcon, Info, Clock, 
   Share2, Settings, Upload, X, Plus, Trash2, Instagram,
   Facebook, MessageCircle, Youtube, CheckCircle, AlertCircle,
-  ExternalLink, Globe, Sparkles, Zap, TrendingUp, Award, Users
+  ExternalLink, Globe, Sparkles, Zap, TrendingUp, Award, Users,
+  Edit, UserPlus, Shield, Scissors as ScissorsIcon
 } from 'lucide-react';
 
 interface ConfigData {
@@ -27,17 +28,23 @@ interface ConfigData {
   allowOnlineBooking: boolean;
 }
 
-interface Barber {
+interface User {
   id: string;
   name: string;
-  avatar: string | null;
   email: string;
+  phone: string | null;
+  avatar: string | null;
+  role: string;
+  active: boolean;
+  createdAt: string;
 }
 
 interface Barbershop {
   id: string;
   name: string;
   logo: string | null;
+  plan: string;
+  users: User[];
 }
 
 export default function ConfigurarLandingPage() {
@@ -48,9 +55,20 @@ export default function ConfigurarLandingPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [barbershopId, setBarbershopId] = useState('');
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState<string | null>(null);
   
+  // Estados do modal
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'barber'
+  });
+
   const [config, setConfig] = useState<ConfigData>({
     heroImage: '',
     heroTitle: '',
@@ -80,7 +98,7 @@ export default function ConfigurarLandingPage() {
 
   useEffect(() => {
     loadConfig();
-    loadBarbers();
+    loadUsers();
   }, []);
 
   const loadConfig = async () => {
@@ -99,7 +117,6 @@ export default function ConfigurarLandingPage() {
         setBarbershopId(user.barbershopId);
       }
 
-      // Carregar configurações
       const configResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -109,7 +126,6 @@ export default function ConfigurarLandingPage() {
         setConfig({ ...config, ...data });
       }
 
-      // Carregar dados da barbearia (logo)
       const barbershopResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -126,36 +142,132 @@ export default function ConfigurarLandingPage() {
     }
   };
 
-  const loadBarbers = async () => {
+  const loadUsers = async () => {
     try {
       const token = localStorage.getItem('@barberFlow:token');
       if (!token) return;
 
-      // ✅ FIX: Usar /barbershop ao invés de /barbershop/users
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
+      const response = await fetch('https://barberflow-api-v2.onrender.com/api/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Dados da barbearia:', data);
-        
-        // ✅ FIX: Pegar users de dentro da resposta
-        const users = data.users || [];
-        console.log('👥 Usuários encontrados:', users);
-        
-        // Filtrar apenas barbeiros e admins
-        const barbersOnly = users.filter((user: any) => 
-          user.role === 'barber' || user.role === 'admin'
-        );
-        
-        console.log('💈 Barbeiros filtrados:', barbersOnly);
-        setBarbers(barbersOnly);
-      } else {
-        console.error('❌ Erro na resposta:', response.status);
+        setUsers(data);
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar barbeiros:', error);
+      console.error('❌ Erro ao carregar usuários:', error);
+    }
+  };
+
+  const openUserModal = (user?: User) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        password: '',
+        role: user.role
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({ name: '', email: '', phone: '', password: '', role: 'barber' });
+    }
+    setShowUserModal(true);
+  };
+
+  const closeUserModal = () => {
+    setShowUserModal(false);
+    setEditingUser(null);
+    setFormData({ name: '', email: '', phone: '', password: '', role: 'barber' });
+  };
+
+  const handleSubmitUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      if (!token) {
+        alert('❌ Token não encontrado');
+        return;
+      }
+
+      const url = editingUser 
+        ? `https://barberflow-api-v2.onrender.com/api/users/${editingUser.id}`
+        : 'https://barberflow-api-v2.onrender.com/api/users';
+
+      const method = editingUser ? 'PUT' : 'POST';
+
+      const body = editingUser 
+        ? { ...formData, password: formData.password || undefined }
+        : formData;
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(editingUser ? '✅ Usuário atualizado!' : '✅ Usuário cadastrado!');
+        closeUserModal();
+        loadUsers();
+      } else {
+        if (data.code === 'BARBER_LIMIT_REACHED') {
+          alert(`⚠️ ${data.error}\n\nSeu plano ${data.currentPlan} permite ${data.limit} barbeiro(s).\n\nFaça upgrade para adicionar mais profissionais!`);
+        } else {
+          alert(`❌ ${data.error || 'Erro ao salvar'}`);
+        }
+      }
+    } catch (error: any) {
+      alert('❌ Erro ao salvar usuário');
+    }
+  };
+
+  const handleToggleUser = async (id: string) => {
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/users/${id}/toggle`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        loadUsers();
+      } else {
+        const data = await response.json();
+        alert(`❌ ${data.error}`);
+      }
+    } catch (error) {
+      alert('❌ Erro ao alterar status');
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    try {
+      const token = localStorage.getItem('@barberFlow:token');
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert('✅ Usuário excluído!');
+        loadUsers();
+      } else {
+        const data = await response.json();
+        alert(`❌ ${data.error}`);
+      }
+    } catch (error) {
+      alert('❌ Erro ao excluir');
     }
   };
 
@@ -230,7 +342,7 @@ export default function ConfigurarLandingPage() {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, barberId: string) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, userId: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -242,11 +354,10 @@ export default function ConfigurarLandingPage() {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    setUploadingAvatar(barberId);
+    setUploadingAvatar(userId);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      // ✅ FIX: Passar barberId na URL
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/upload/user-avatar/${barberId}`, {
+      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/upload/user-avatar/${userId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -254,8 +365,8 @@ export default function ConfigurarLandingPage() {
 
       if (response.ok) {
         const { avatarUrl } = await response.json();
-        setBarbers(prev => prev.map(b => 
-          b.id === barberId ? { ...b, avatar: avatarUrl } : b
+        setUsers(prev => prev.map(u => 
+          u.id === userId ? { ...u, avatar: avatarUrl } : u
         ));
         alert('✅ Avatar atualizado com sucesso!');
       } else {
@@ -342,6 +453,18 @@ export default function ConfigurarLandingPage() {
     saturday: 'Sábado',
     sunday: 'Domingo'
   };
+
+  const activeUsers = users.filter(u => u.active);
+  const planLimits: Record<string, number> = {
+    trial: 1,
+    basic: 1,
+    standard: 5,
+    premium: 15,
+    enterprise: -1
+  };
+  const currentPlan = barbershop?.plan || 'trial';
+  const maxBarbers = planLimits[currentPlan] || 1;
+  const isLimitReached = maxBarbers !== -1 && activeUsers.length >= maxBarbers;
 
   if (loading) {
     return (
@@ -1060,57 +1183,111 @@ export default function ConfigurarLandingPage() {
                 </div>
               )}
 
-              {/* Equipe (NOVA ABA) */}
+              {/* Equipe (EXPANDIDA COM CRUD COMPLETO) */}
               {activeTab === 'team' && (
                 <div className="space-y-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-cyan-100 rounded-xl">
-                      <Users className="w-6 h-6 text-cyan-600" />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-cyan-100 rounded-xl">
+                        <Users className="w-6 h-6 text-cyan-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Gerenciar Profissionais</h2>
+                        <p className="text-gray-600 text-sm mt-1">
+                          Cadastre barbeiros e personalize os avatares
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Gerenciar Equipe</h2>
-                      <p className="text-gray-600 text-sm mt-1">
-                        Personalize os avatares dos profissionais
-                      </p>
-                    </div>
+                    <button
+                      onClick={() => openUserModal()}
+                      disabled={isLimitReached}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition shadow-lg font-medium"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Adicionar</span>
+                    </button>
                   </div>
 
-                  <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-4 mb-6">
-                    <div className="flex gap-3">
-                      <Sparkles className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-cyan-900 font-medium mb-1">
-                          Personalize Sua Equipe
-                        </p>
-                        <p className="text-xs text-cyan-700">
-                          Fotos reais dos profissionais aumentam a confiança dos clientes. Se não houver foto, a logo da barbearia será exibida.
+                  {/* Card de Plano e Limite */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Award className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-bold text-gray-900">Plano {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</h3>
+                          <span className="text-sm font-semibold text-gray-600">
+                            {activeUsers.length}/{maxBarbers === -1 ? '∞' : maxBarbers} barbeiro(s)
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all"
+                            style={{ width: maxBarbers === -1 ? '100%' : `${(activeUsers.length / maxBarbers) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {isLimitReached 
+                            ? `⚠️ Limite atingido! Faça upgrade para adicionar mais profissionais.`
+                            : `Você pode adicionar mais ${maxBarbers === -1 ? 'infinitos' : maxBarbers - activeUsers.length} barbeiro(s).`
+                          }
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {barbers.length === 0 ? (
+                  {/* Card de Aviso de Limite */}
+                  {isLimitReached && (
+                    <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-4">
+                      <div className="flex gap-3">
+                        <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-orange-900 font-bold mb-1">
+                            Limite de Barbeiros Atingido!
+                          </p>
+                          <p className="text-xs text-orange-800 mb-3">
+                            Seu plano {currentPlan} permite até {maxBarbers} barbeiro(s). Faça upgrade para adicionar mais profissionais!
+                          </p>
+                          <a
+                            href="/planos"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition font-medium text-sm"
+                          >
+                            <Zap className="w-4 h-4" />
+                            Ver Planos
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lista de Usuários */}
+                  {users.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                       <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 font-medium mb-2">Nenhum profissional cadastrado ainda</p>
+                      <p className="text-gray-600 font-medium mb-2">Nenhum profissional cadastrado</p>
                       <p className="text-sm text-gray-500 mb-4">
-                        Cadastre barbeiros na seção de usuários para gerenciar os avatares aqui
+                        Cadastre o primeiro barbeiro para começar
                       </p>
-                      <p className="text-xs text-gray-400">
-                        💡 Dica: Vá em <strong>Configurações → Usuários</strong> para adicionar profissionais
-                      </p>
+                      <button
+                        onClick={() => openUserModal()}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl transition shadow-lg font-medium"
+                      >
+                        <UserPlus className="w-5 h-5" />
+                        Cadastrar Primeiro Profissional
+                      </button>
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-4">
-                      {barbers.map((barber) => (
-                        <div key={barber.id} className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
-                          <div className="flex items-start gap-4">
+                      {users.map((user) => (
+                        <div key={user.id} className={`bg-gradient-to-br from-white to-gray-50 border-2 rounded-2xl p-6 hover:shadow-lg transition-all ${!user.active ? 'opacity-60 border-red-200' : 'border-gray-200'}`}>
+                          <div className="flex items-start gap-4 mb-4">
                             <div className="relative flex-shrink-0">
-                              <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-gray-300 bg-gray-100">
-                                {barber.avatar ? (
+                              <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-gray-300 bg-gray-100">
+                                {user.avatar ? (
                                   <img 
-                                    src={barber.avatar} 
-                                    alt={barber.name} 
+                                    src={user.avatar} 
+                                    alt={user.name} 
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
@@ -1119,35 +1296,90 @@ export default function ConfigurarLandingPage() {
                                   </div>
                                 )}
                               </div>
-                              {uploadingAvatar === barber.id && (
+                              {uploadingAvatar === user.id && (
                                 <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                                 </div>
                               )}
+                              <div className="absolute -bottom-1 -right-1">
+                                {user.role === 'admin' ? (
+                                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-1 rounded-full">
+                                    <Shield className="w-3 h-3 text-white" />
+                                  </div>
+                                ) : (
+                                  <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-1 rounded-full">
+                                    <ScissorsIcon className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-lg text-gray-900 truncate">{barber.name}</h3>
-                              <p className="text-sm text-gray-500 truncate mb-3">{barber.email}</p>
-                              
-                              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg transition font-medium text-sm shadow-md">
-                                <Upload className="w-4 h-4" />
-                                {barber.avatar ? 'Trocar Foto' : 'Adicionar Foto'}
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) => handleAvatarUpload(e, barber.id)}
-                                  disabled={uploadingAvatar === barber.id}
-                                  className="hidden"
-                                />
-                              </label>
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h3 className="font-bold text-lg text-gray-900 truncate">{user.name}</h3>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${
+                                  user.role === 'admin' 
+                                    ? 'bg-purple-100 text-purple-700' 
+                                    : 'bg-cyan-100 text-cyan-700'
+                                }`}>
+                                  {user.role === 'admin' ? 'Admin' : 'Barbeiro'}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 truncate mb-1">{user.email}</p>
+                              {user.phone && (
+                                <p className="text-xs text-gray-400 truncate">{user.phone}</p>
+                              )}
                             </div>
                           </div>
 
-                          {!barber.avatar && (
-                            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <label className="cursor-pointer flex-1">
+                              <div className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg transition font-medium text-sm">
+                                <Upload className="w-4 h-4" />
+                                {user.avatar ? 'Trocar' : 'Avatar'}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleAvatarUpload(e, user.id)}
+                                disabled={uploadingAvatar === user.id}
+                                className="hidden"
+                              />
+                            </label>
+                            <button
+                              onClick={() => openUserModal(user)}
+                              className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.active 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {user.active ? 'Ativo' : 'Inativo'}
+                            </span>
+                            <button
+                              onClick={() => handleToggleUser(user.id)}
+                              className="text-xs text-cyan-600 hover:text-cyan-700 font-semibold"
+                            >
+                              {user.active ? 'Desativar' : 'Ativar'}
+                            </button>
+                          </div>
+
+                          {!user.avatar && (
+                            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
                               <p className="text-xs text-yellow-800">
-                                <strong>⚠️ Sem foto:</strong> A logo da barbearia será exibida como fallback.
+                                ⚠️ Sem foto: Logo da barbearia será exibida.
                               </p>
                             </div>
                           )}
@@ -1300,6 +1532,135 @@ export default function ConfigurarLandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Cadastro/Edição de Usuário */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeUserModal}
+          />
+
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 md:absolute md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:max-h-[85vh] md:w-full md:max-w-lg">
+            
+            {/* Handle (só mobile) */}
+            <div className="md:hidden flex justify-center py-3">
+              <div className="w-12 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-3xl md:rounded-t-2xl z-10">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingUser ? 'Editar Profissional' : 'Novo Profissional'}
+              </h2>
+              <button
+                onClick={closeUserModal}
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <form onSubmit={handleSubmitUser} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  E-mail *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                  placeholder="joao@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Senha {editingUser && '(deixe em branco para manter a atual)'}
+                  {!editingUser && ' *'}
+                </label>
+                <input
+                  type="password"
+                  required={!editingUser}
+                  minLength={6}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {!editingUser && 'A senha deve ter no mínimo 6 caracteres'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Função *
+                </label>
+                <select
+                  required
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                >
+                  <option value="barber">Barbeiro</option>
+                  <option value="admin">Administrador</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Admins têm acesso total ao sistema
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-6 -mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 rounded-b-3xl md:rounded-b-2xl">
+                <button
+                  type="button"
+                  onClick={closeUserModal}
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-700 hover:to-blue-700 transition"
+                >
+                  {editingUser ? 'Atualizar' : 'Cadastrar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
