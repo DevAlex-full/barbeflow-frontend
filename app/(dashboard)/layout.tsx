@@ -13,7 +13,8 @@ import {
   LogOut,
   Menu,
   X,
-  Globe
+  Globe,
+  MapPin
 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { cn } from '@/lib/utils/cn';
@@ -60,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
     { href: '/clientes', icon: Users, label: 'Clientes' },
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
+    { href: '/localizacao', icon: MapPin, label: 'Localização' },
     { href: '/landing-page', icon: Globe, label: 'Landing Page' },
     { href: '/planos', icon: Settings, label: 'Planos' },
   ];
