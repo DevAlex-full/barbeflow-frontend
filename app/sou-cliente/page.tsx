@@ -1,10 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User, Phone } from 'lucide-react';
+import { Search, MapPin, Facebook, Instagram, Youtube, Twitter, ChevronUp, X, Eye, EyeOff, User, Phone, Navigation } from 'lucide-react';
 import LanguageSelector from './_components/LanguageSelector';
 import ForgotPasswordModal from './_components/ForgotPasswordModal';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Importar mapa dinamicamente (cliente-side only)
+const BarbershopMap = dynamic(() => import('./_components/BarbershopMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  )
+});
 
 interface Barbershop {
   id: string;
@@ -15,6 +26,9 @@ interface Barbershop {
   state: string;
   logo?: string;
   plan?: string | null;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
 }
 
 interface Service {
@@ -47,6 +61,11 @@ export default function ClientPage() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [radius, setRadius] = useState('10'); // Raio de busca em km
+  const [showCepModal, setShowCepModal] = useState(false);
+  const [cepInput, setCepInput] = useState('');
+  const [searchingCep, setSearchingCep] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [cityFilter, setCityFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -291,18 +310,21 @@ export default function ClientPage() {
   const loadBarbershops = async () => {
     try {
       setLoading(true);
-      let url = 'https://barberflow-api-v2.onrender.com/api/public/barbershops';
-      const params = new URLSearchParams();
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (cityFilter) params.append('city', cityFilter);
-      if (stateFilter) params.append('state', stateFilter);
-
-      if (params.toString()) url += `?${params.toString()}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-      setBarbershops(data);
+      // Se tem localização do usuário, buscar por proximidade
+      if (userLocation) {
+        const response = await fetch(
+          `https://barberflow-api-v2.onrender.com/api/barbershop-location/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radius}`
+        );
+        const data = await response.json();
+        setBarbershops(data.barbershops || []);
+      } else {
+        // Buscar todas (modo antigo)
+        const url = 'https://barberflow-api-v2.onrender.com/api/public/barbershops';
+        const response = await fetch(url);
+        const data = await response.json();
+        setBarbershops(data);
+      }
     } catch (error) {
       console.error('Erro ao carregar barbearias:', error);
     } finally {
@@ -424,6 +446,13 @@ export default function ClientPage() {
     }
   }, []);
 
+  // Recarregar quando mudar o raio
+  useEffect(() => {
+    if (userLocation && locationEnabled) {
+      loadBarbershops();
+    }
+  }, [radius]);
+
   const handleBooking = async () => {
     if (!selectedService || !selectedBarber || !selectedTime) {
       alert('Preencha todos os campos');
@@ -473,22 +502,69 @@ export default function ClientPage() {
       setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          setUserLocation(location);
           setLocationEnabled(true);
           setLoading(false);
-          alert('Localização habilitada! Mostrando barbearias próximas.');
+          setShowMap(true);
+          // Buscar barbearias próximas automaticamente
+          setTimeout(() => {
+            loadBarbershops();
+          }, 100);
         },
         (error) => {
           setLoading(false);
-          alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
           console.error('Erro de geolocalização:', error);
+          // Abrir modal de CEP automaticamente se negar GPS
+          setShowCepModal(true);
         }
       );
     } else {
       alert('Seu navegador não suporta geolocalização.');
+    }
+  };
+
+  const handleCepSearch = async () => {
+    const cleanCep = cepInput.replace(/\D/g, '');
+
+    if (cleanCep.length !== 8) {
+      alert('CEP inválido. Digite 8 dígitos.');
+      return;
+    }
+
+    setSearchingCep(true);
+    try {
+      const response = await fetch(
+        `https://barberflow-api-v2.onrender.com/api/barbershop-location/geocode/cep/${cleanCep}`
+      );
+
+      if (!response.ok) {
+        throw new Error('CEP não encontrado');
+      }
+
+      const data = await response.json();
+      const location = {
+        lat: data.latitude,
+        lng: data.longitude
+      };
+
+      setUserLocation(location);
+      setLocationEnabled(true);
+      setShowCepModal(false);
+      setShowMap(true);
+      setCepInput('');
+
+      // Buscar barbearias próximas
+      setTimeout(() => {
+        loadBarbershops();
+      }, 100);
+    } catch (error) {
+      alert('CEP não encontrado. Verifique e tente novamente.');
+    } finally {
+      setSearchingCep(false);
     }
   };
 
@@ -600,16 +676,66 @@ export default function ClientPage() {
 
       <section className="px-4 py-8 bg-[#0a0d11]">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
             <h2 className="text-xl font-semibold">Empresas próximas</h2>
 
-            {/* ✅ Contador de resultados */}
-            {isAuthenticated && filteredBarbershops.length > 0 && (
-              <span className="text-sm text-gray-400">
-                {filteredBarbershops.length} {filteredBarbershops.length === 1 ? 'barbearia encontrada' : 'barbearias encontradas'}
-              </span>
-            )}
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              {/* Filtro de Raio */}
+              {locationEnabled && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-400">Raio:</label>
+                  <select
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    className="bg-[#151b23] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="5">5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="20">20 km</option>
+                    <option value="50">50 km</option>
+                    <option value="999">Todas</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Botão Toggle Mapa */}
+              {locationEnabled && (
+                <button
+                  onClick={() => setShowMap(!showMap)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+                >
+                  {showMap ? '📋 Lista' : '🗺️ Mapa'}
+                </button>
+              )}
+
+              {/* Contador */}
+              {isAuthenticated && filteredBarbershops.length > 0 && (
+                <span className="text-sm text-gray-400">
+                  {filteredBarbershops.length} {filteredBarbershops.length === 1 ? 'barbearia' : 'barbearias'}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Mapa Interativo */}
+          {isAuthenticated && locationEnabled && showMap && filteredBarbershops.length > 0 && (
+            <div className="mb-6 h-[500px] rounded-2xl overflow-hidden shadow-lg border border-gray-800">
+              <BarbershopMap
+                userLocation={userLocation!}
+                barbershops={filteredBarbershops.filter(b => b.latitude && b.longitude).map(b => ({
+                  id: b.id,
+                  name: b.name,
+                  latitude: b.latitude!,
+                  longitude: b.longitude!,
+                  distance: b.distance || 0,
+                  logo: b.logo
+                }))}
+                onBarbershopClick={(id) => {
+                  window.location.href = `/barbearia/${id}`;
+                }}
+              />
+            </div>
+          )}
 
           {!isAuthenticated ? (
             <>
@@ -741,21 +867,19 @@ export default function ClientPage() {
                               </span>
                             </div>
 
+                            {/* ✅ DISTÂNCIA (se localização habilitada) - APENAS UMA VEZ */}
+                            {locationEnabled && barbershop.distance !== undefined && (
+                              <div className="flex items-center gap-2 text-blue-400 text-sm mb-3">
+                                <Navigation size={16} />
+                                <span className="font-semibold">{barbershop.distance.toFixed(1)} km de distância</span>
+                              </div>
+                            )}
+
                             {/* TELEFONE */}
                             <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
                               <Phone size={16} />
                               <span>{barbershop.phone}</span>
                             </div>
-
-                            {/* ✅ DISTÂNCIA (se localização habilitada) */}
-                            {locationEnabled && (
-                              <div className="flex items-center gap-2 text-blue-400 text-sm mb-4">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>450m de distância</span>
-                              </div>
-                            )}
 
                             {/* BOTÃO */}
                             <button className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] text-white py-2.5 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-blue-500/50">
@@ -1110,6 +1234,51 @@ export default function ClientPage() {
 
               <button onClick={handleBooking} disabled={!selectedService || !selectedBarber || !selectedTime} className="w-full bg-[#2463eb] hover:bg-[#1d4fd8] disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition">
                 Confirmar Agendamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de CEP */}
+      {showCepModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#2a3441] rounded-2xl max-w-md w-full p-8 relative">
+            <button
+              onClick={() => setShowCepModal(false)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-white transition"
+            >
+              <X size={24} />
+            </button>
+
+            <h2 className="text-2xl font-semibold mb-4 text-center">Buscar por CEP</h2>
+            <p className="text-gray-400 text-sm mb-6 text-center">
+              Digite seu CEP para encontrar barbearias próximas
+            </p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={cepInput}
+                onChange={(e) => setCepInput(e.target.value)}
+                placeholder="00000-000"
+                maxLength={9}
+                className="w-full bg-[#374151] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              />
+
+              <button
+                onClick={handleCepSearch}
+                disabled={searchingCep}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-semibold transition"
+              >
+                {searchingCep ? 'Buscando...' : 'Buscar'}
+              </button>
+
+              <button
+                onClick={handleEnableLocation}
+                className="w-full border border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 py-3 rounded-lg font-semibold transition"
+              >
+                Ou usar GPS
               </button>
             </div>
           </div>
