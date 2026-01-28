@@ -43,6 +43,12 @@ interface Barbershop {
   plan: string;
   active: boolean;
   config?: BarbershopConfig;
+  zipCode?: string | null;
+  neighborhood?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface Service {
@@ -363,6 +369,26 @@ export default function BarbershopLanding() {
     );
   }
 
+  // Helper para formatar endereço
+  const formatAddress = () => {
+    if (barbershop.address) {
+      const parts = [
+        barbershop.address,
+        barbershop.number,
+        barbershop.neighborhood,
+        barbershop.city,
+        barbershop.state
+      ].filter(Boolean);
+      return parts.join(', ');
+    }
+
+    if (barbershop.city && barbershop.state) {
+      return `${barbershop.city}, ${barbershop.state}`;
+    }
+
+    return 'Endereço não cadastrado';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white">
       <style jsx global>{`
@@ -418,7 +444,7 @@ export default function BarbershopLanding() {
             </Link>
 
             <div className="flex items-center gap-3">
-              {!authLoading && isAuthenticated && client ? ( 
+              {!authLoading && isAuthenticated && client ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/30">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   <span className="text-sm font-medium text-green-300 hidden sm:inline">
@@ -543,9 +569,9 @@ export default function BarbershopLanding() {
               {
                 icon: MapPin,
                 title: 'Localização',
-                value: barbershop.address || `${barbershop.city}, ${barbershop.state}`,
+                value: formatAddress(),
                 color: 'from-blue-500 to-cyan-500',
-                action: barbershop.address ? `https://maps.google.com/?q=${encodeURIComponent(barbershop.address)}` : null
+                action: barbershop.address ? `https://maps.google.com/?q=${encodeURIComponent(formatAddress())}` : null
               },
               {
                 icon: Phone,
@@ -640,15 +666,15 @@ export default function BarbershopLanding() {
                     {/* ✅ SUBSTITUIÇÃO: Ícone de tesoura → Logo */}
                     <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center ml-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 flex-shrink-0 overflow-hidden">
                       {barbershop.logo ? (
-                        <img 
-                          src={barbershop.logo} 
-                          alt="Logo" 
+                        <img
+                          src={barbershop.logo}
+                          alt="Logo"
                           className="w-full h-full object-contain p-2"
                         />
                       ) : (
-                        <img 
-                          src="/Logo1.png" 
-                          alt="BarberFlow" 
+                        <img
+                          src="/Logo1.png"
+                          alt="BarberFlow"
                           className="w-full h-full object-contain p-2"
                         />
                       )}
@@ -825,15 +851,15 @@ export default function BarbershopLanding() {
                     {/* ✅ SUBSTITUIÇÃO: Ícone de relógio → Logo */}
                     <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
                       {barbershop.logo ? (
-                        <img 
-                          src={barbershop.logo} 
-                          alt="Logo" 
+                        <img
+                          src={barbershop.logo}
+                          alt="Logo"
                           className="w-full h-full object-contain p-2"
                         />
                       ) : (
-                        <img 
-                          src="/Logo1.png" 
-                          alt="BarberFlow" 
+                        <img
+                          src="/Logo1.png"
+                          alt="BarberFlow"
                           className="w-full h-full object-contain p-2"
                         />
                       )}
@@ -959,15 +985,15 @@ export default function BarbershopLanding() {
               {/* ✅ SUBSTITUIÇÃO: Ícone de tesoura → Logo */}
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center overflow-hidden">
                 {barbershop.logo ? (
-                  <img 
-                    src={barbershop.logo} 
-                    alt={barbershop.name} 
+                  <img
+                    src={barbershop.logo}
+                    alt={barbershop.name}
                     className="w-full h-full object-contain p-2"
                   />
                 ) : (
-                  <img 
-                    src="/Logo1.png" 
-                    alt="BarberFlow" 
+                  <img
+                    src="/Logo1.png"
+                    alt="BarberFlow"
                     className="w-full h-full object-contain p-2"
                   />
                 )}
