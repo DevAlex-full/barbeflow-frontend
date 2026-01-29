@@ -537,7 +537,7 @@ export default function BarbershopLanding() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-24 pb-8 relative z-40">
+          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-24 pb-24 relative z-40">
             {[
               { icon: Users, value: '500+', label: 'Clientes' },
               { icon: Star, value: '5.0', label: 'Avaliação' },
