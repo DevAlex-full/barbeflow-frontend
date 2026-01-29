@@ -939,10 +939,8 @@ export default function ClientPage() {
               </div>
               <p className="text-gray-400 text-sm mb-4">Uma nova experiência para uma antiga tradição.</p>
               <div className="flex gap-4">
-                <a href="#" className="text-gray-400 hover:text-white transition"><Facebook size={20} /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition"><Instagram size={20} /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition"><Youtube size={20} /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition"><Twitter size={20} /></a>
+                <a href="https://www.facebook.com/profile.php?id=61582501223578&locale=pt_BR" className="text-gray-400 hover:text-white transition"><Facebook size={20} /></a>
+                <a href="https://www.instagram.com/appbarberflow/" className="text-gray-400 hover:text-white transition"><Instagram size={20} /></a>
               </div>
             </div>
 
