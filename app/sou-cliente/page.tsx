@@ -826,12 +826,14 @@ export default function ClientPage() {
                               <img
                                 src={barbershop.logo}
                                 alt={barbershop.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-6xl">
-                                ✂️
-                              </div>
+                              <img
+                                src="/Logo1.png"
+                                alt="BarberFlow"
+                                className="w-full h-full object-contain p-3"
+                              />
                             )}
 
                             {/* ✅ BADGE DO PLANO NO CANTO SUPERIOR DIREITO */}
