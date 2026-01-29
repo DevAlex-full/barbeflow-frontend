@@ -830,7 +830,7 @@ export default function ClientPage() {
                               />
                             ) : (
                               <img
-                                src="/Logo.png"
+                                src="/Logo2.png"
                                 alt="BarberFlow"
                                 className="w-full h-full object-contain p-3"
                               />
