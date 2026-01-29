@@ -166,10 +166,10 @@ export default function LocalizacaoPage() {
           <Navigation className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm text-blue-900 font-medium mb-1">
-              Por que cadastrar a localização?
+              💡 Dica: Use o CEP para preencher automaticamente!
             </p>
             <p className="text-xs text-blue-700">
-              Clientes poderão encontrar sua barbearia por proximidade, aumentando suas chances de agendamento!
+              Digite o CEP e clique em Buscar. O sistema preencherá automaticamente o endereço, bairro, cidade e estado. Depois é só adicionar o número e salvar!
             </p>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function LocalizacaoPage() {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Digite o CEP e clique em Buscar para preencher automaticamente
+            ⭐ Digite o CEP e clique em Buscar para preencher tudo automaticamente
           </p>
         </div>
 
@@ -226,9 +226,10 @@ export default function LocalizacaoPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Número</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Número *</label>
             <input
               type="text"
+              required
               value={formData.number}
               onChange={(e) => setFormData({ ...formData, number: e.target.value })}
               placeholder="123"
@@ -255,9 +256,12 @@ export default function LocalizacaoPage() {
             required
             value={formData.neighborhood}
             onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-            placeholder="Centro"
+            placeholder="Ex: Centro, Jardim Paulista"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-gray-900 bg-white"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Digite o nome do bairro (ex: Taboão, Jardim Iracema, Vila Mariana)
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -268,9 +272,12 @@ export default function LocalizacaoPage() {
               required
               value={formData.city}
               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              placeholder="São Paulo"
+              placeholder="Ex: São Paulo, Taboão da Serra"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-gray-900 bg-white"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Digite o nome completo da cidade
+            </p>
           </div>
 
           <div>
@@ -281,34 +288,34 @@ export default function LocalizacaoPage() {
               onChange={(e) => setFormData({ ...formData, state: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-gray-900 bg-white"
             >
-              <option value="">Selecione...</option>
-              <option value="AC">Acre</option>
-              <option value="AL">Alagoas</option>
-              <option value="AP">Amapá</option>
-              <option value="AM">Amazonas</option>
-              <option value="BA">Bahia</option>
-              <option value="CE">Ceará</option>
-              <option value="DF">Distrito Federal</option>
-              <option value="ES">Espírito Santo</option>
-              <option value="GO">Goiás</option>
-              <option value="MA">Maranhão</option>
-              <option value="MT">Mato Grosso</option>
-              <option value="MS">Mato Grosso do Sul</option>
-              <option value="MG">Minas Gerais</option>
-              <option value="PA">Pará</option>
-              <option value="PB">Paraíba</option>
-              <option value="PR">Paraná</option>
-              <option value="PE">Pernambuco</option>
-              <option value="PI">Piauí</option>
-              <option value="RJ">Rio de Janeiro</option>
-              <option value="RN">Rio Grande do Norte</option>
-              <option value="RS">Rio Grande do Sul</option>
-              <option value="RO">Rondônia</option>
-              <option value="RR">Roraima</option>
-              <option value="SC">Santa Catarina</option>
-              <option value="SP">São Paulo</option>
-              <option value="SE">Sergipe</option>
-              <option value="TO">Tocantins</option>
+              <option value="">Selecione o estado...</option>
+              <option value="AC">Acre (AC)</option>
+              <option value="AL">Alagoas (AL)</option>
+              <option value="AP">Amapá (AP)</option>
+              <option value="AM">Amazonas (AM)</option>
+              <option value="BA">Bahia (BA)</option>
+              <option value="CE">Ceará (CE)</option>
+              <option value="DF">Distrito Federal (DF)</option>
+              <option value="ES">Espírito Santo (ES)</option>
+              <option value="GO">Goiás (GO)</option>
+              <option value="MA">Maranhão (MA)</option>
+              <option value="MT">Mato Grosso (MT)</option>
+              <option value="MS">Mato Grosso do Sul (MS)</option>
+              <option value="MG">Minas Gerais (MG)</option>
+              <option value="PA">Pará (PA)</option>
+              <option value="PB">Paraíba (PB)</option>
+              <option value="PR">Paraná (PR)</option>
+              <option value="PE">Pernambuco (PE)</option>
+              <option value="PI">Piauí (PI)</option>
+              <option value="RJ">Rio de Janeiro (RJ)</option>
+              <option value="RN">Rio Grande do Norte (RN)</option>
+              <option value="RS">Rio Grande do Sul (RS)</option>
+              <option value="RO">Rondônia (RO)</option>
+              <option value="RR">Roraima (RR)</option>
+              <option value="SC">Santa Catarina (SC)</option>
+              <option value="SP">São Paulo (SP)</option>
+              <option value="SE">Sergipe (SE)</option>
+              <option value="TO">Tocantins (TO)</option>
             </select>
           </div>
         </div>
