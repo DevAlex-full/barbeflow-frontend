@@ -537,7 +537,7 @@ export default function BarbershopLanding() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16 relative z-40">
+          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16 pb-8 relative z-40">
             {[
               { icon: Users, value: '500+', label: 'Clientes' },
               { icon: Star, value: '5.0', label: 'Avaliação' },
@@ -562,7 +562,7 @@ export default function BarbershopLanding() {
       </section>
 
       {/* Info Cards Flutuantes */}
-      <section className="-mt-20 relative z-30 px-4 sm:px-6 lg:px-8">
+      <section className="-mt-16 relative z-30 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -1212,7 +1212,7 @@ export default function BarbershopLanding() {
                             <div className="flex justify-between">
                               <span className="text-gray-400">Data:</span>
                               <span className="font-bold">
-                                {new Date(selectedDate).toLocaleDateString('pt-BR')}
+                                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')}
                               </span>
                             </div>
                             {selectedTime && (
