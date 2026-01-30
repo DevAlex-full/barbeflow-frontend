@@ -207,8 +207,26 @@ export default function BarbershopLanding() {
   const loadAvailableTimes = async () => {
     setLoadingTimes(true);
     try {
+      // ✅ VALIDAÇÃO: Garantir formato correto YYYY-MM-DD
+      let dateToSend = selectedDate;
+
+      // Se a data não está no formato correto, corrigir
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+        console.warn('⚠️ Data em formato incorreto:', selectedDate);
+        const parts = selectedDate.split('-');
+        if (parts.length === 3) {
+          // Garantir que o ano tenha 4 dígitos
+          const year = parts[0].padStart(4, '0');
+          const month = parts[1].padStart(2, '0');
+          const day = parts[2].padStart(2, '0');
+          dateToSend = `${year}-${month}-${day}`;
+        }
+      }
+
+      console.log('📅 Enviando data:', dateToSend);
+
       const response = await fetch(
-        `https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${selectedDate}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
+        `https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
       );
       if (response.ok) {
         const times = await response.json();
@@ -1134,7 +1152,16 @@ export default function BarbershopLanding() {
                     <input
                       type="date"
                       value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        // ✅ VALIDAÇÃO: Garantir formato YYYY-MM-DD
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+                          setSelectedDate(newDate);
+                          console.log('✅ Data selecionada:', newDate);
+                        } else {
+                          console.warn('⚠️ Data inválida ignorada:', newDate);
+                        }
+                      }}
                       min={new Date().toISOString().split('T')[0]}
                       className="w-full bg-white/5 border border-white/20 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-indigo-500 transition text-lg"
                     />
