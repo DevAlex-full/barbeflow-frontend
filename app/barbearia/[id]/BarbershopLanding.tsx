@@ -207,38 +207,52 @@ export default function BarbershopLanding() {
   const loadAvailableTimes = async () => {
     setLoadingTimes(true);
     try {
-      // ✅ VALIDAÇÃO ROBUSTA: Garantir formato YYYY-MM-DD
-      if (!selectedDate || selectedDate.length < 10) {
-        console.warn('⚠️ Data incompleta:', selectedDate);
+      // ✅ VALIDAÇÃO: Data deve ter exatamente 10 caracteres (YYYY-MM-DD)
+      if (!selectedDate || selectedDate.length !== 10) {
+        console.warn('⚠️ Data incompleta ou inválida:', selectedDate);
         setAvailableTimes([]);
         setLoadingTimes(false);
         return;
       }
 
-      // Extrair e validar partes da data
-      const [year, month, day] = selectedDate.split('-').map(s => s.padStart(4, '0'));
-
-      // Garantir que o ano tem exatamente 4 dígitos
-      const yearNum = parseInt(year);
-      if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-        console.warn('⚠️ Ano inválido:', year);
+      // ✅ Dividir a data em partes
+      const parts = selectedDate.split('-');
+      if (parts.length !== 3) {
+        console.warn('⚠️ Formato de data inválido:', selectedDate);
         setAvailableTimes([]);
         setLoadingTimes(false);
         return;
       }
 
-      // Reconstruir a data no formato correto
-      const dateToSend = `${yearNum}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      // ✅ CORREÇÃO: Não aplicar padStart no ano!
+      const yearStr = parts[0];  // Já vem com 4 dígitos do input
+      const monthStr = parts[1].padStart(2, '0');  // Apenas mês precisa de padding
+      const dayStr = parts[2].padStart(2, '0');    // Apenas dia precisa de padding
 
+      // ✅ Validar ano (2000-2100 e exatamente 4 dígitos)
+      const yearNum = parseInt(yearStr);
+      if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100 || yearStr.length !== 4) {
+        console.warn('⚠️ Ano inválido:', yearStr);
+        setAvailableTimes([]);
+        setLoadingTimes(false);
+        return;
+      }
+
+      // ✅ Reconstruir a data no formato correto
+      const dateToSend = `${yearStr}-${monthStr}-${dayStr}`;
+
+      console.log('📅 Data selecionada:', selectedDate);
       console.log('📅 Enviando data:', dateToSend);
 
       const response = await fetch(
         `https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
       );
+
       if (response.ok) {
         const times = await response.json();
         setAvailableTimes(times);
       } else {
+        console.error('❌ Erro ao buscar horários:', response.status);
         setAvailableTimes([]);
       }
     } catch (error) {
