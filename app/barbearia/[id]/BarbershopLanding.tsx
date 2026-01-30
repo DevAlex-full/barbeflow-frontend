@@ -207,21 +207,28 @@ export default function BarbershopLanding() {
   const loadAvailableTimes = async () => {
     setLoadingTimes(true);
     try {
-      // ✅ VALIDAÇÃO: Garantir formato correto YYYY-MM-DD
-      let dateToSend = selectedDate;
-
-      // Se a data não está no formato correto, corrigir
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
-        console.warn('⚠️ Data em formato incorreto:', selectedDate);
-        const parts = selectedDate.split('-');
-        if (parts.length === 3) {
-          // Garantir que o ano tenha 4 dígitos
-          const year = parts[0].padStart(4, '0');
-          const month = parts[1].padStart(2, '0');
-          const day = parts[2].padStart(2, '0');
-          dateToSend = `${year}-${month}-${day}`;
-        }
+      // ✅ VALIDAÇÃO ROBUSTA: Garantir formato YYYY-MM-DD
+      if (!selectedDate || selectedDate.length < 10) {
+        console.warn('⚠️ Data incompleta:', selectedDate);
+        setAvailableTimes([]);
+        setLoadingTimes(false);
+        return;
       }
+
+      // Extrair e validar partes da data
+      const [year, month, day] = selectedDate.split('-').map(s => s.padStart(4, '0'));
+
+      // Garantir que o ano tem exatamente 4 dígitos
+      const yearNum = parseInt(year);
+      if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+        console.warn('⚠️ Ano inválido:', year);
+        setAvailableTimes([]);
+        setLoadingTimes(false);
+        return;
+      }
+
+      // Reconstruir a data no formato correto
+      const dateToSend = `${yearNum}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
       console.log('📅 Enviando data:', dateToSend);
 
@@ -231,6 +238,8 @@ export default function BarbershopLanding() {
       if (response.ok) {
         const times = await response.json();
         setAvailableTimes(times);
+      } else {
+        setAvailableTimes([]);
       }
     } catch (error) {
       console.error('Erro ao carregar horários:', error);
