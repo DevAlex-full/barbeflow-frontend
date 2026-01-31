@@ -323,50 +323,138 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Como Começar */}
+      {/* Como Começar - Novo Design */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-16 text-gray-900">
             Como começar
           </h2>
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12 mb-12">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-600 to-purple-800 rounded-full flex items-center justify-center shadow-xl">
-                <span className="text-3xl font-bold text-white">1</span>
+          
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Coluna Esquerda - Steps */}
+            <div className="space-y-12">
+              {/* Step 1 */}
+              <div className="flex gap-6 items-start group">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">1</span>
+                  </div>
+                </div>
+                <div className="flex-1 pt-2">
+                  <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">
+                    Faça o Cadastro
+                  </h3>
+                  <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+                    Preencha seus dados e comece seu teste grátis em poucos minutos
+                  </p>
+                </div>
               </div>
-              <h3 className="font-bold text-xl mb-3 text-gray-900">Faça o Cadastro</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Preencha seus dados e comece seu teste grátis em poucos minutos
-              </p>
+
+              {/* Step 2 */}
+              <div className="flex gap-6 items-start group">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">2</span>
+                  </div>
+                </div>
+                <div className="flex-1 pt-2">
+                  <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">
+                    Escolha seu Plano
+                  </h3>
+                  <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+                    Selecione o plano ideal para o tamanho da sua barbearia
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex gap-6 items-start group">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">3</span>
+                  </div>
+                </div>
+                <div className="flex-1 pt-2">
+                  <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gray-900">
+                    Teste grátis por 15 dias
+                  </h3>
+                  <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+                    Experimente todas as funcionalidades sem compromisso
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <div className="pt-4">
+                <Link href="/register">
+                  <button className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300">
+                    CADASTRE-SE E COMECE AGORA
+                  </button>
+                </Link>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-600 to-purple-800 rounded-full flex items-center justify-center shadow-xl">
-                <span className="text-3xl font-bold text-white">2</span>
-              </div>
-              <h3 className="font-bold text-xl mb-3 text-gray-900">Escolha seu Plano</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Selecione o plano ideal para o tamanho da sua barbearia
-              </p>
-            </div>
+            {/* Coluna Direita - Mockup Devices */}
+            <div className="relative lg:h-[500px] flex items-center justify-center">
+              {/* Container para devices - você substituirá por suas imagens reais */}
+              <div className="relative w-full max-w-2xl mx-auto">
+                {/* Laptop/Desktop Mockup */}
+                <div className="relative z-10 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-2xl p-2 transform hover:scale-105 transition-transform duration-300">
+                  <div className="bg-white rounded-md aspect-video flex items-center justify-center overflow-hidden">
+                    {/* Placeholder - Substitua pelo seu screenshot */}
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-8">
+                      <div className="w-16 h-16 bg-purple-600 rounded-full mb-4 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 font-semibold text-sm text-center">
+                        Dashboard BarberFlow
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        [Substitua por sua imagem]
+                      </p>
+                    </div>
+                  </div>
+                  {/* Base do laptop */}
+                  <div className="h-2 bg-gradient-to-b from-gray-700 to-gray-800 rounded-b-lg"></div>
+                </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-600 to-purple-800 rounded-full flex items-center justify-center shadow-xl">
-                <span className="text-3xl font-bold text-white">3</span>
-              </div>
-              <h3 className="font-bold text-xl mb-3 text-gray-900">Teste grátis por 15 dias</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Experimente todas as funcionalidades sem compromisso
-              </p>
-            </div>
-          </div>
+                {/* Tablet Mockup */}
+                <div className="absolute -bottom-8 -left-4 sm:-left-8 w-32 sm:w-40 z-20 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-xl p-1.5 transform hover:scale-105 transition-transform duration-300">
+                  <div className="bg-white rounded-md aspect-[3/4] flex items-center justify-center overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-4">
+                      <div className="w-10 h-10 bg-purple-600 rounded-full mb-2 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 font-semibold text-xs text-center">
+                        Mobile
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-          <div className="text-center">
-            <Link href="/register">
-              <button className="px-10 py-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300">
-                CADASTRE-SE E COMECE AGORA
-              </button>
-            </Link>
+                {/* Smartphone Mockup */}
+                <div className="absolute -top-4 -right-4 sm:-right-8 w-24 sm:w-28 z-30 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-1.5 transform hover:scale-105 transition-transform duration-300">
+                  <div className="bg-white rounded-xl aspect-[9/19] flex items-center justify-center overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-3">
+                      <div className="w-8 h-8 bg-purple-600 rounded-full mb-2 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 font-semibold text-[10px] text-center">
+                        App
+                      </p>
+                    </div>
+                  </div>
+                  {/* Notch do iPhone */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-3 bg-gray-900 rounded-b-lg"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
