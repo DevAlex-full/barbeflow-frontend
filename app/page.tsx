@@ -106,16 +106,16 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="fixed top-0 w-full bg-black/25 backdrop-blur-md z-50 border-b border-gray-800">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-1">
           <div className="flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center">
               <Image 
-                src="/Logo.png" 
+                src="/Logo3.png" 
                 alt="BarberFlow" 
-                width={180} 
-                height={45} 
-                className="h-10 sm:h-12 md:h-14 w-auto" 
+                width={200} 
+                height={50} 
+                className="h-8 sm:h-10 md:h-12 w-auto" 
                 priority
               />
             </div>
@@ -203,11 +203,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section 
         id="home" 
-        className="pt-20 min-h-screen flex items-center justify-center text-center relative overflow-hidden" 
+        className="pt-20 min-h-[600px] md:min-h-[700px] lg:min-h-[800px] flex items-center justify-center text-center relative overflow-hidden" 
         style={{ backgroundImage: 'url(/fundo4.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80"></div>
-        <div className="relative z-10 max-w-5xl px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+        <div className="relative z-10 max-w-5xl px-4 sm:px-6 lg:px-8 py-16 md:py-20">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-tight">
             <span className="bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
               BarberFlow
@@ -400,21 +400,15 @@ export default function LandingPage() {
               <div className="relative w-full max-w-2xl mx-auto">
                 {/* Laptop/Desktop Mockup */}
                 <div className="relative z-10 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-2xl p-2 transform hover:scale-105 transition-transform duration-300">
-                  <div className="bg-white rounded-md aspect-video flex items-center justify-center overflow-hidden">
-                    {/* Placeholder - Substitua pelo seu screenshot */}
-                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-8">
-                      <div className="w-16 h-16 bg-purple-600 rounded-full mb-4 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-600 font-semibold text-sm text-center">
-                        Dashboard BarberFlow
-                      </p>
-                      <p className="text-gray-400 text-xs mt-1">
-                        [Substitua por sua imagem]
-                      </p>
-                    </div>
+                  <div className="bg-white rounded-md aspect-video flex items-center justify-center overflow-hidden relative">
+                    {/* Imagem real do dashboard */}
+                    <Image 
+                      src="/dashboard-desktop.png" 
+                      alt="Dashboard BarberFlow"
+                      fill
+                      className="object-cover"
+                      quality={80}
+                    />
                   </div>
                   {/* Base do laptop */}
                   <div className="h-2 bg-gradient-to-b from-gray-700 to-gray-800 rounded-b-lg"></div>
