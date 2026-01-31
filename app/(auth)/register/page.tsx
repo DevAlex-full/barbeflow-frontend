@@ -200,11 +200,11 @@ export default function RegisterPage() {
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <p className="text-sm text-gray-700 text-center">
                 Ao criar sua conta, você concorda com nossos{' '}
-                <Link href="/termos" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                <Link href="/termos-barbeiro" className="text-purple-600 hover:text-purple-700 font-semibold underline">
                   Termos de Uso
                 </Link>
                 {' '}e{' '}
-                <Link href="/privacidade" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                <Link href="/privacidade-barbeiro" className="text-purple-600 hover:text-purple-700 font-semibold underline">
                   Política de Privacidade
                 </Link>
               </p>

@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ClientAuthProvider } from '@/lib/contexts/ClientAuthContext';
+import CookieConsent from '../components/CookieConsent'; // ✅ ADICIONAR IMPORT
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,8 @@ export default function RootLayout({
           {/* ✅ ClientAuthProvider: Para clientes públicos */}
           <ClientAuthProvider>
             {children}
+            {/* ✅ ADICIONAR BANNER DE COOKIES AQUI */}
+            <CookieConsent />
           </ClientAuthProvider>
         </AuthProvider>
       </body>
