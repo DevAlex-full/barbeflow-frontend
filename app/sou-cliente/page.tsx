@@ -959,8 +959,8 @@
               <div>
                 <h4 className="font-bold mb-4">Mais</h4>
                 <ul className="space-y-2 text-sm text-gray-400 mb-6">
-                  <li><a href="#" className="hover:text-white transition">Termos de uso</a></li>
-                  <li><a href="#" className="hover:text-white transition">Preferências de cookies</a></li>
+                  <li><a href="/termos-cliente" className="hover:text-white transition">Termos de uso</a></li>
+                  <li><a href="/privacidade-cliente" className="hover:text-white transition">Política de privacidade</a></li>
                 </ul>
 
                 <div className="border border-gray-800 rounded-lg p-4">
