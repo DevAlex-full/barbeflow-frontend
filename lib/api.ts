@@ -1,7 +1,13 @@
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
-// ✅ URL HARDCODED para garantir funcionamento em produção
-const API_BASE_URL = 'https://barberflow-api-v2.onrender.com/api';
+// ✅ URL dinâmica: usa localhost em dev, produção em build
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:4000/api' 
+    : 'https://barberflow-api-v2.onrender.com/api');
+
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🔧 Environment:', process.env.NODE_ENV);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
