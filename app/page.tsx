@@ -416,33 +416,29 @@ export default function LandingPage() {
 
                 {/* Tablet Mockup */}
                 <div className="absolute -bottom-8 -left-4 sm:-left-8 w-32 sm:w-40 z-20 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-xl p-1.5 transform hover:scale-105 transition-transform duration-300">
-                  <div className="bg-white rounded-md aspect-[3/4] flex items-center justify-center overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-4">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full mb-2 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-600 font-semibold text-xs text-center">
-                        Mobile
-                      </p>
-                    </div>
+                  <div className="bg-white rounded-md aspect-[3/4] flex items-center justify-center overflow-hidden relative">
+                    {/* Imagem real - Tablet */}
+                    <Image 
+                      src="/clientes-tablet.png" 
+                      alt="Clientes BarberFlow Tablet"
+                      fill
+                      className="object-cover"
+                      quality={80}
+                    />
                   </div>
                 </div>
 
                 {/* Smartphone Mockup */}
                 <div className="absolute -top-4 -right-4 sm:-right-8 w-24 sm:w-28 z-30 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-1.5 transform hover:scale-105 transition-transform duration-300">
-                  <div className="bg-white rounded-xl aspect-[9/19] flex items-center justify-center overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-50 flex flex-col items-center justify-center p-3">
-                      <div className="w-8 h-8 bg-purple-600 rounded-full mb-2 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-600 font-semibold text-[10px] text-center">
-                        App
-                      </p>
-                    </div>
+                  <div className="bg-white rounded-xl aspect-[9/19] flex items-center justify-center overflow-hidden relative">
+                    {/* Imagem real - Mobile */}
+                    <Image 
+                      src="/landing-mobile.png" 
+                      alt="Landing BarberFlow Mobile"
+                      fill
+                      className="object-cover"
+                      quality={80}
+                    />
                   </div>
                   {/* Notch do iPhone */}
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-3 bg-gray-900 rounded-b-lg"></div>
