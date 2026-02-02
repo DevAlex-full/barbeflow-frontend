@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Save, Eye, Palette, Image as ImageIcon, Info, Clock, 
+import {
+  Save, Eye, Palette, Image as ImageIcon, Info, Clock,
   Share2, Settings, Upload, X, Plus, Trash2, Instagram,
   Facebook, MessageCircle, Youtube, CheckCircle, AlertCircle,
   ExternalLink, Globe, Sparkles, Zap, TrendingUp, Award, Users,
   Edit, UserPlus, Shield, Scissors as ScissorsIcon
 } from 'lucide-react';
+import { CompletionIndicator } from '@/components/landing-page/CompletionIndicator';
+import { ImageUploadZone } from '@/components/landing-page/ImageUploadZone';
+import { calculateCompletion } from '@/lib/completionHelper';
 
 interface ConfigData {
   heroImage: string;
@@ -57,7 +60,8 @@ export default function ConfigurarLandingPage() {
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState<string | null>(null);
-  
+  const [showPreview, setShowPreview] = useState(false);
+
   // Estados do modal
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -101,11 +105,13 @@ export default function ConfigurarLandingPage() {
     loadUsers();
   }, []);
 
+  const completion = calculateCompletion(config, barbershop?.logo);
+
   const loadConfig = async () => {
     try {
       const token = localStorage.getItem('@barberFlow:token');
       const userStr = localStorage.getItem('@barberFlow:user');
-      
+
       if (!token) {
         console.warn('⚠️ Token não encontrado');
         setLoading(false);
@@ -120,7 +126,7 @@ export default function ConfigurarLandingPage() {
       const configResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (configResponse.ok) {
         const data = await configResponse.json();
         setConfig({ ...config, ...data });
@@ -193,13 +199,13 @@ export default function ConfigurarLandingPage() {
         return;
       }
 
-      const url = editingUser 
+      const url = editingUser
         ? `https://barberflow-api-v2.onrender.com/api/users/${editingUser.id}`
         : 'https://barberflow-api-v2.onrender.com/api/users';
 
       const method = editingUser ? 'PUT' : 'POST';
 
-      const body = editingUser 
+      const body = editingUser
         ? { ...formData, password: formData.password || undefined }
         : formData;
 
@@ -276,7 +282,7 @@ export default function ConfigurarLandingPage() {
     setSuccessMessage('');
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      
+
       if (!token) {
         alert('❌ Token não encontrado. Faça login novamente.');
         return;
@@ -365,7 +371,7 @@ export default function ConfigurarLandingPage() {
 
       if (response.ok) {
         const { avatarUrl } = await response.json();
-        setUsers(prev => prev.map(u => 
+        setUsers(prev => prev.map(u =>
           u.id === userId ? { ...u, avatar: avatarUrl } : u
         ));
         alert('✅ Avatar atualizado com sucesso!');
@@ -426,11 +432,15 @@ export default function ConfigurarLandingPage() {
   };
 
   const openPreview = () => {
-    if (barbershopId) {
-      window.open(`/barbearia/${barbershopId}`, '_blank');
-    } else {
+    if (!barbershopId) {
       alert('ID da barbearia não encontrado');
+      return;
     }
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
   };
 
   const tabs = [
@@ -491,6 +501,12 @@ export default function ConfigurarLandingPage() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Personalizar Landing Page
                 </h1>
+                <div className="mt-4">
+                  <CompletionIndicator
+                    percentage={completion.percentage}
+                    missingFields={completion.missingFields}
+                  />
+                </div>
                 <p className="text-gray-600 text-sm mt-1">Configure sua presença digital profissional</p>
               </div>
             </div>
@@ -591,11 +607,10 @@ export default function ConfigurarLandingPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? `bg-gradient-to-r from-${tab.color}-600 to-${tab.color}-500 text-white shadow-lg scale-105`
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === tab.id
+                        ? `bg-gradient-to-r from-${tab.color}-600 to-${tab.color}-500 text-white shadow-lg scale-105`
+                        : 'text-gray-700 hover:bg-gray-100'
+                        }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span className="text-sm font-medium">{tab.label}</span>
@@ -609,7 +624,7 @@ export default function ConfigurarLandingPage() {
           {/* Conteúdo Principal */}
           <div className="lg:col-span-3">
             <div className="bg-white/80 backdrop-blur rounded-2xl p-6 border border-gray-200 shadow-xl">
-              
+
               {/* Hero/Banner */}
               {activeTab === 'hero' && (
                 <div className="space-y-6">
@@ -658,15 +673,26 @@ export default function ConfigurarLandingPage() {
                         </div>
                       ) : (
                         <label className="cursor-pointer block">
-                          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                          <p className="text-gray-700 font-medium mb-2">Clique para fazer upload</p>
-                          <p className="text-gray-500 text-sm">PNG, JPG até 5MB • Recomendado: 1920x1080px</p>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, 'hero')}
-                            disabled={uploading}
-                            className="hidden"
+                          <ImageUploadZone
+                            onUpload={async (file) => {
+                              const formData = new FormData();
+                              formData.append('image', file);
+
+                              const token = localStorage.getItem('@barberFlow:token');
+                              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                              });
+
+                              if (response.ok) {
+                                const { url } = await response.json();
+                                setConfig({ ...config, heroImage: url });
+                              }
+                            }}
+                            currentImage={config.heroImage}
+                            label="Imagem de Fundo"
+                            description="PNG, JPG até 5MB • Recomendado: 1920x1080px"
                           />
                         </label>
                       )}
@@ -796,7 +822,7 @@ export default function ConfigurarLandingPage() {
                         </div>
                       </div>
                     ))}
-                    
+
                     {config.galleryImages.length < 12 && (
                       <label className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-pink-400 hover:bg-pink-50/50 transition-all h-40">
                         {uploading ? (
@@ -993,15 +1019,15 @@ export default function ConfigurarLandingPage() {
                     <p className="text-sm text-gray-600 mb-4">
                       Esta logo será exibida nos cards de serviços, horários e como fallback para barbeiros sem avatar.
                     </p>
-                    
+
                     <div className="border-2 border-dashed border-indigo-300 rounded-xl p-6 text-center hover:border-indigo-400 hover:bg-indigo-50/50 transition-all">
                       {barbershop?.logo ? (
                         <div className="relative group">
                           <div className="flex justify-center mb-4">
-                            <img 
-                              src={barbershop.logo} 
-                              alt="Logo" 
-                              className="h-32 w-32 object-contain rounded-xl shadow-lg border-2 border-gray-200" 
+                            <img
+                              src={barbershop.logo}
+                              alt="Logo"
+                              className="h-32 w-32 object-contain rounded-xl shadow-lg border-2 border-gray-200"
                             />
                           </div>
                           <div className="flex gap-3 justify-center">
@@ -1119,7 +1145,7 @@ export default function ConfigurarLandingPage() {
                         Botão Primário
                       </button>
                       <button
-                        style={{ 
+                        style={{
                           background: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})`
                         }}
                         className="w-full py-4 rounded-xl font-bold text-white shadow-lg hover:scale-105 transition-transform"
@@ -1127,13 +1153,13 @@ export default function ConfigurarLandingPage() {
                         Gradiente (Hero Section)
                       </button>
                       <div className="grid grid-cols-2 gap-3">
-                        <div 
+                        <div
                           style={{ backgroundColor: config.primaryColor }}
                           className="h-20 rounded-xl shadow-md flex items-center justify-center text-white font-semibold"
                         >
                           Principal
                         </div>
-                        <div 
+                        <div
                           style={{ backgroundColor: config.secondaryColor }}
                           className="h-20 rounded-xl shadow-md flex items-center justify-center text-white font-semibold"
                         >
@@ -1222,13 +1248,13 @@ export default function ConfigurarLandingPage() {
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                          <div 
+                          <div
                             className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all"
                             style={{ width: maxBarbers === -1 ? '100%' : `${(activeUsers.length / maxBarbers) * 100}%` }}
                           ></div>
                         </div>
                         <p className="text-xs text-gray-600">
-                          {isLimitReached 
+                          {isLimitReached
                             ? `⚠️ Limite atingido! Faça upgrade para adicionar mais profissionais.`
                             : `Você pode adicionar mais ${maxBarbers === -1 ? 'infinitos' : maxBarbers - activeUsers.length} barbeiro(s).`
                           }
@@ -1285,9 +1311,9 @@ export default function ConfigurarLandingPage() {
                             <div className="relative flex-shrink-0">
                               <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-gray-300 bg-gray-100">
                                 {user.avatar ? (
-                                  <img 
-                                    src={user.avatar} 
-                                    alt={user.name} 
+                                  <img
+                                    src={user.avatar}
+                                    alt={user.name}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
@@ -1317,11 +1343,10 @@ export default function ConfigurarLandingPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2 mb-1">
                                 <h3 className="font-bold text-lg text-gray-900 truncate">{user.name}</h3>
-                                <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${
-                                  user.role === 'admin' 
-                                    ? 'bg-purple-100 text-purple-700' 
-                                    : 'bg-cyan-100 text-cyan-700'
-                                }`}>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${user.role === 'admin'
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'bg-cyan-100 text-cyan-700'
+                                  }`}>
                                   {user.role === 'admin' ? 'Admin' : 'Barbeiro'}
                                 </span>
                               </div>
@@ -1361,11 +1386,10 @@ export default function ConfigurarLandingPage() {
                           </div>
 
                           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              user.active 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.active
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
                               {user.active ? 'Ativo' : 'Inativo'}
                             </span>
                             <button
@@ -1533,6 +1557,50 @@ export default function ConfigurarLandingPage() {
         </div>
       </div>
 
+      {/* 🆕 Modal de Preview da Landing Page */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm">
+          <div className="h-full flex flex-col p-4 md:p-6">
+            {/* Header do Preview */}
+            <div className="flex items-center justify-between mb-4 bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg">
+                  <Eye className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Preview da Landing Page</h2>
+                  <p className="text-sm text-white/70">Visualização em tempo real</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.open(`/barbearia/${barbershopId}`, '_blank')}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl transition flex items-center gap-2 font-medium"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">Abrir em Nova Aba</span>
+                </button>
+                <button
+                  onClick={closePreview}
+                  className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-xl transition"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Iframe com Loading */}
+            <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-2xl relative">
+              <iframe
+                src={`/barbearia/${barbershopId}`}
+                className="w-full h-full"
+                title="Preview da Landing Page"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Cadastro/Edição de Usuário */}
       {showUserModal && (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -1542,7 +1610,7 @@ export default function ConfigurarLandingPage() {
           />
 
           <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 md:absolute md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:max-h-[85vh] md:w-full md:max-w-lg">
-            
+
             {/* Handle (só mobile) */}
             <div className="md:hidden flex justify-center py-3">
               <div className="w-12 h-1 bg-gray-300 rounded-full" />
