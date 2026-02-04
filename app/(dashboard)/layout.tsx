@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { cn } from '@/lib/utils/cn';
+import { FileText } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, barbershop, loading, signOut } = useAuth();
@@ -61,7 +62,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/localizacao', icon: MapPin, label: 'Localização' },
     { href: '/landing-page', icon: Globe, label: 'Landing Page' },
     { href: '/planos', icon: CreditCard, label: 'Planos' },
-    { href: '/configuracoes', icon: Settings, label: 'Configurações' }, // ✅ ADICIONADO
+    { href: '/configuracoes', icon: Settings, label: 'Configurações' },
+    { href: '/relatorios', icon: FileText, label: 'Relatórios' },
   ];
 
   const bottomNavItems = [
