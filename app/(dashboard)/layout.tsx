@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Globe,
-  MapPin
+  MapPin,
+  CreditCard
 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { cn } from '@/lib/utils/cn';
@@ -25,7 +26,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ✅ FIX: Redirecionamento apenas quando terminar de carregar E não tiver usuário
   useEffect(() => {
     if (!loading && !user) {
       console.log('⚠️ Usuário não autenticado - redirecionando para login');
@@ -33,12 +33,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, router]);
 
-  // Fecha menu mobile ao navegar
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // ✅ FIX: Loading state enquanto verifica autenticação
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -50,12 +48,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // ✅ FIX: Se não tem usuário após loading, retorna null (useEffect vai redirecionar)
   if (!user) {
     return null;
   }
 
-  // ✅ Menu items (agora só é renderizado quando user existe)
+  // ✅ CORRIGIDO: Menu items com Configurações adicionado
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
@@ -63,15 +60,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
     { href: '/localizacao', icon: MapPin, label: 'Localização' },
     { href: '/landing-page', icon: Globe, label: 'Landing Page' },
-    { href: '/planos', icon: Settings, label: 'Planos' },
+    { href: '/planos', icon: CreditCard, label: 'Planos' },
+    { href: '/configuracoes', icon: Settings, label: 'Configurações' }, // ✅ ADICIONADO
   ];
 
-  // Itens do Bottom Nav
   const bottomNavItems = [
     menuItems[0], // Dashboard
     menuItems[1], // Agendamentos
     menuItems[2], // Clientes
-    menuItems[4], // Landing Page
+    menuItems[5], // Landing Page
   ];
 
   return (
@@ -85,11 +82,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Scissors className="w-6 h-6 text-white" />
             </div>
             <div className="ml-3 flex-1 min-w-0">
-              {/* ✅ FIX: Uso seguro de barbershop com fallback */}
               <h2 className="text-lg font-bold text-gray-900 truncate">
                 {barbershop?.name || 'Barbearia'}
               </h2>
-              {/* ✅ FIX: user.name agora é garantido existir */}
               <p className="text-xs text-gray-500 truncate">{user.name}</p>
             </div>
           </div>
@@ -141,7 +136,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Scissors className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              {/* ✅ FIX: Uso seguro de barbershop */}
               <h2 className="text-sm font-bold text-gray-900 truncate">
                 {barbershop?.name || 'Barbearia'}
               </h2>

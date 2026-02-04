@@ -1,0 +1,116 @@
+'use client';
+
+import { Crown, Check, TrendingUp, ExternalLink } from 'lucide-react';
+import { Plan, getPlanById, formatPrice, getPlanBadgeColor } from '@/lib/plans';
+
+interface PlanoAtualProps {
+  currentPlanId: string;
+}
+
+export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
+  const currentPlan = getPlanById(currentPlanId);
+
+  if (!currentPlan) {
+    return null;
+  }
+
+  const badgeColor = getPlanBadgeColor(currentPlanId);
+
+  return (
+    <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-purple-100 rounded-xl">
+          <Crown className="w-6 h-6 text-purple-600" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Plano Atual</h2>
+          <p className="text-sm text-gray-600">Gerencie sua assinatura</p>
+        </div>
+      </div>
+
+      {/* Card do Plano */}
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 mb-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${badgeColor} mb-3`}>
+              <Crown className="w-4 h-4" />
+              {currentPlan.name}
+            </span>
+            <div className="flex items-baseline gap-2 mt-3">
+              <span className="text-4xl font-bold text-gray-900">
+                {formatPrice(currentPlan.price)}
+              </span>
+              <span className="text-gray-600">
+                /{currentPlan.interval === 'monthly' ? 'mês' : 'ano'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Limites do Plano */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white/80 backdrop-blur rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-600 mb-1">Barbeiros</p>
+            <p className="text-lg font-bold text-gray-900">
+              {currentPlan.maxBarbers === -1 ? '∞' : currentPlan.maxBarbers}
+            </p>
+          </div>
+          <div className="bg-white/80 backdrop-blur rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-600 mb-1">Serviços</p>
+            <p className="text-lg font-bold text-gray-900">
+              {currentPlan.maxServices === -1 ? '∞' : currentPlan.maxServices}
+            </p>
+          </div>
+          <div className="bg-white/80 backdrop-blur rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-600 mb-1">Clientes</p>
+            <p className="text-lg font-bold text-gray-900">
+              {currentPlan.maxClients === -1 ? '∞' : currentPlan.maxClients}
+            </p>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="space-y-2 mb-6">
+          {currentPlan.features.map((feature, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <Check className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-sm text-gray-700">{feature}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Botões */}
+        <div className="flex gap-3">
+          {currentPlanId !== 'enterprise' && (
+            <a
+              href="/planos"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition font-semibold shadow-lg"
+            >
+              <TrendingUp className="w-5 h-5" />
+              Fazer Upgrade
+            </a>
+          )}
+          <a
+            href="/faturas"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-xl transition font-semibold"
+          >
+            <ExternalLink className="w-5 h-5" />
+            Ver Faturas
+          </a>
+        </div>
+      </div>
+
+      {/* Informações Adicionais */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="text-sm text-blue-900 font-semibold mb-2">
+          💡 Próxima cobrança
+        </p>
+        <p className="text-sm text-blue-700">
+          Sua próxima cobrança será em <strong>02/03/2026</strong> no valor de <strong>{formatPrice(currentPlan.price)}</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
