@@ -71,21 +71,21 @@ export default function TransacoesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-40 shadow-lg">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition text-gray-900 dark:text-white"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
-                <p className="text-gray-600 text-sm mt-1">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transações</h1>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                   Histórico completo de receitas e despesas
                 </p>
               </div>
@@ -105,19 +105,19 @@ export default function TransacoesPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filtros */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-bold text-gray-800">Filtros</h3>
+            <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Filtros</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
               <select
                 value={filters.type}
-                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                onChange={(e) => setFilters({ ...filters, type: e.target.value as '' | 'income' | 'expense' })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Todos</option>
                 <option value="income">Receitas</option>
@@ -126,11 +126,11 @@ export default function TransacoesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categoria</label>
               <select
                 value={filters.category}
                 onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Todas</option>
                 <option value="service">Serviço</option>
@@ -145,22 +145,22 @@ export default function TransacoesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data Início</label>
               <input
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data Fim</label>
               <input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
               />
             </div>
           </div>
@@ -174,14 +174,14 @@ export default function TransacoesPage() {
         </div>
 
         {/* Tabela */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
               <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto" />
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="text-gray-500">Nenhuma transação encontrada</p>
+              <p className="text-gray-500 dark:text-gray-400">Nenhuma transação encontrada</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -196,10 +196,10 @@ export default function TransacoesPage() {
                     <th className="px-6 py-4 text-center text-sm font-semibold">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-purple-50 transition">
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                    <tr key={transaction.id} className="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition">
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                         {new Date(transaction.date).toLocaleDateString('pt-BR')}
                       </td>
                       <td className="px-6 py-4">
@@ -209,15 +209,15 @@ export default function TransacoesPage() {
                           ) : (
                             <ArrowDownRight className="w-4 h-4 text-red-600" />
                           )}
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {transaction.description}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {getCategoryLabel(transaction.category)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 capitalize">
                         {transaction.paymentMethod || '-'}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -231,7 +231,7 @@ export default function TransacoesPage() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleDelete(transaction.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                             title="Excluir"
                           >
                             <Trash2 className="w-4 h-4" />

@@ -148,6 +148,7 @@ export default function ConfigurarLandingPage() {
     }
   };
 
+  // ✅ DEPOIS (MOSTRA TODOS):
   const loadUsers = async () => {
     try {
       const token = localStorage.getItem('@barberFlow:token');
@@ -159,6 +160,18 @@ export default function ConfigurarLandingPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Usuários carregados:', data); // Debug
+
+        // ✅ ADICIONE ISTO:
+        console.log('═══════════════════════════════════');
+        console.log('📊 Total usuários:', data.length);
+        console.log('👥 Usuários:', data);
+        console.log('✅ Ativos:', data.filter((u: any) => u.active).length);
+        console.log('═══════════════════════════════════');
+
+        // ✅ MOSTRA TODOS (admin + barber + qualquer role)
+        // Não filtra por role, não filtra por active
+        // Backend já retorna apenas usuários da barbearia
         setUsers(data);
       }
     } catch (error) {
@@ -489,6 +502,14 @@ export default function ConfigurarLandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+        <CompletionIndicator
+          percentage={completion.percentage}
+          missingFields={completion.missingFields}
+        />
+      </div>
+
       {/* Header Premium */}
       <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -501,12 +522,6 @@ export default function ConfigurarLandingPage() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   Personalizar Landing Page
                 </h1>
-                <div className="mt-4">
-                  <CompletionIndicator
-                    percentage={completion.percentage}
-                    missingFields={completion.missingFields}
-                  />
-                </div>
                 <p className="text-gray-600 text-sm mt-1">Configure sua presença digital profissional</p>
               </div>
             </div>

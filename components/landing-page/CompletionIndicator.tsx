@@ -41,7 +41,7 @@ export function CompletionIndicator({ percentage, missingFields }: CompletionInd
   const Icon = currentColor.icon;
 
   return (
-    <div className={`${currentColor.bg} rounded-xl p-4 border border-${color}-200`}>
+    <div className={`${currentColor.bg} rounded-xl p-4 border-2 border-${color}-300 shadow-sm`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Icon className={`w-5 h-5 ${currentColor.text}`} />
@@ -51,7 +51,6 @@ export function CompletionIndicator({ percentage, missingFields }: CompletionInd
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
         <div
           className={`${currentColor.bar} h-2 rounded-full transition-all duration-500`}
@@ -59,7 +58,6 @@ export function CompletionIndicator({ percentage, missingFields }: CompletionInd
         />
       </div>
 
-      {/* Missing Fields */}
       {missingFields.length > 0 && (
         <div className="text-xs text-gray-600 mt-2">
           <p className="font-semibold mb-1">Campos pendentes:</p>
