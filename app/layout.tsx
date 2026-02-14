@@ -2,7 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ClientAuthProvider } from '@/lib/contexts/ClientAuthContext';
-import CookieConsent from '../components/CookieConsent'; // ✅ ADICIONAR IMPORT
+import CookieConsent from '../components/CookieConsent';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,14 +17,35 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className={inter.className}>
-        {/* ✅ AuthProvider: Para barbearias (admin/barbeiros) */}
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme') || 'light';
+                  const html = document.documentElement;
+                  html.classList.remove('dark');
+                  if (theme === 'dark') {
+                    html.classList.add('dark');
+                  } else if (theme === 'auto') {
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                      html.classList.add('dark');
+                    }
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body
+        className={`${inter.className} min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200`}
+      >
         <AuthProvider>
-          {/* ✅ ClientAuthProvider: Para clientes públicos */}
           <ClientAuthProvider>
             {children}
-            {/* ✅ ADICIONAR BANNER DE COOKIES AQUI */}
             <CookieConsent />
           </ClientAuthProvider>
         </AuthProvider>

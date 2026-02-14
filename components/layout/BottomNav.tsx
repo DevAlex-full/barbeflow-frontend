@@ -23,7 +23,7 @@ export function BottomNav({ items }: BottomNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom transition-colors duration-200">
       <div className="flex items-center justify-around px-2 py-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -37,8 +37,8 @@ export function BottomNav({ items }: BottomNavProps) {
                 'flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-xl transition-all duration-200',
                 'active:scale-95',
                 isActive
-                  ? 'text-purple-600 bg-purple-50'
-                  : 'text-gray-600 hover:text-purple-600'
+                  ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
               )}
             >
               <Icon
@@ -61,10 +61,6 @@ export function BottomNav({ items }: BottomNavProps) {
   );
 }
 
-/**
- * Spacer para dar espaço ao BottomNav
- * Use no final das páginas que usam BottomNav
- */
 export function BottomNavSpacer() {
   return <div className="md:hidden h-20" />;
 }
