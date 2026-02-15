@@ -23,7 +23,7 @@ export default function ComissoesPage() {
   const [editingBarber, setEditingBarber] = useState<string | null>(null);
   const [tempPercentage, setTempPercentage] = useState<number>(40);
   const [showConfigModal, setShowConfigModal] = useState(false);
-  
+
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -37,7 +37,7 @@ export default function ComissoesPage() {
     try {
       setLoadingBarbers(true);
       const response = await api.get('/users');
-      
+
       // ✅ REMOVIDO FILTRO - MOSTRA TODOS USUÁRIOS
       const barbersList = response.data.map((user: any) => ({
         id: user.id,
@@ -45,7 +45,7 @@ export default function ComissoesPage() {
         role: user.role,
         commissionPercentage: user.commissionPercentage || 40
       }));
-      
+
       console.log('✅ Usuários carregados:', barbersList);
       setBarbers(barbersList);
     } catch (error) {
@@ -114,11 +114,11 @@ export default function ComissoesPage() {
         return;
       }
 
-      await api.put(`/users/${barberId}`, {
+      await api.put(`/users/${barberId}/commission`, {
         commissionPercentage: tempPercentage
-      });
-      
-      setBarbers(barbers.map(b => 
+      });;
+
+      setBarbers(barbers.map(b =>
         b.id === barberId ? { ...b, commissionPercentage: tempPercentage } : b
       ));
       setEditingBarber(null);
@@ -290,11 +290,10 @@ export default function ComissoesPage() {
                   <div key={commission.id} className="p-6 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${
-                          commission.status === 'paid' 
-                            ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
+                        <div className={`p-3 rounded-xl ${commission.status === 'paid'
+                            ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                             : 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
-                        }`}>
+                          }`}>
                           <DollarSign className="w-6 h-6" />
                         </div>
                         <div>
@@ -387,7 +386,7 @@ export default function ComissoesPage() {
                           {barber.role === 'admin' ? 'Admin' : 'Barbeiro'}
                         </span>
                       </div>
-                      
+
                       {editingBarber === barber.id ? (
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
