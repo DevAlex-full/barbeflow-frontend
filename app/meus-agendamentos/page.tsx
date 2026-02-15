@@ -2,72 +2,53 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, MapPin, Phone, X, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, X, AlertCircle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface Appointment {
-  id: string;
-  date: string;
-  status: string;
-  price: number;
-  notes?: string;
-  barbershop: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    logo?: string;
-  };
-  barber: {
-    name: string;
-    avatar?: string;
-  };
-  service: {
-    name: string;
-    duration: number;
-    price: number;
-  };
-}
+import { useClientAuth } from '@/lib/contexts/ClientAuthContext';
+import { clientAppointmentsApi, ClientAppointment } from '@/lib/api/client-appointments';
 
 export default function MeusAgendamentosPage() {
   const router = useRouter();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const { client, isAuthenticated, loading: authLoading } = useClientAuth(); // ✅ USA O CONTEXTO
+  const [appointments, setAppointments] = useState<ClientAppointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled'>('all');
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [selectedAppointment, setSelectedAppointment] = useState<ClientAppointment | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
+  // ✅ Verifica autenticação usando o contexto
   useEffect(() => {
-    checkAuth();
-    loadAppointments();
-  }, []);
-
-  const checkAuth = () => {
-    const token = localStorage.getItem('@barberFlow:client:token');
-    if (!token) {
+    if (!authLoading && !isAuthenticated) {
+      console.log('⚠️ Cliente não autenticado, redirecionando...');
       router.push('/sou-cliente');
     }
-  };
+  }, [authLoading, isAuthenticated, router]);
+
+  // ✅ Carrega agendamentos quando o cliente estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated && client) {
+      loadAppointments();
+    }
+  }, [isAuthenticated, client]);
 
   const loadAppointments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('@barberFlow:client:token');
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/appointments/my-appointments', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error('Erro ao carregar agendamentos');
-
-      const data = await response.json();
+      console.log('📅 Carregando agendamentos do cliente:', client?.email);
+      
+      // ✅ USA A API TIPADA
+      const data = await clientAppointmentsApi.getMyAppointments();
       setAppointments(data);
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao carregar agendamentos');
+      
+      console.log('✅ Agendamentos carregados:', data.length);
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar agendamentos:', error);
+      
+      // Mensagem de erro mais amigável
+      const errorMessage = error.response?.data?.error || error.message || 'Erro ao carregar agendamentos';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -77,26 +58,26 @@ export default function MeusAgendamentosPage() {
     if (!selectedAppointment) return;
 
     try {
-      const token = localStorage.getItem('@barberFlow:client:token');
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/client/appointments/${selectedAppointment.id}/cancel`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || 'Erro ao cancelar agendamento');
-        return;
-      }
-
-      alert('Agendamento cancelado com sucesso!');
+      setCancelLoading(true);
+      console.log('🚫 Cancelando agendamento:', selectedAppointment.id);
+      
+      // ✅ USA A API TIPADA
+      await clientAppointmentsApi.cancelAppointment(selectedAppointment.id);
+      
+      alert('✅ Agendamento cancelado com sucesso!');
       setShowCancelModal(false);
       setSelectedAppointment(null);
-      loadAppointments();
-    } catch (error) {
-      alert('Erro ao cancelar agendamento');
+      
+      // Recarrega a lista
+      await loadAppointments();
+    } catch (error: any) {
+      console.error('❌ Erro ao cancelar:', error);
+      
+      // Mostra mensagem de erro do backend
+      const errorMessage = error.message || 'Erro ao cancelar agendamento';
+      alert(errorMessage);
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -136,19 +117,28 @@ export default function MeusAgendamentosPage() {
   });
 
   const upcomingAppointments = filteredAppointments.filter(apt => 
-    new Date(apt.date) >= new Date() && apt.status !== 'cancelled'
+    new Date(apt.date) >= new Date() && apt.status !== 'cancelled' && apt.status !== 'completed'
   );
 
   const pastAppointments = filteredAppointments.filter(apt => 
-    new Date(apt.date) < new Date() || apt.status === 'cancelled'
+    new Date(apt.date) < new Date() || apt.status === 'cancelled' || apt.status === 'completed'
   );
 
-  if (loading) {
+  // ✅ Loading enquanto autentica OU carrega dados
+  if (authLoading || (loading && appointments.length === 0)) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando seus agendamentos...</p>
+        </div>
       </div>
     );
+  }
+
+  // ✅ Se não estiver autenticado, não renderiza nada (vai redirecionar)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -178,7 +168,28 @@ export default function MeusAgendamentosPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Meus Agendamentos</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Meus Agendamentos</h1>
+            {client && (
+              <p className="text-gray-400">Olá, {client.name}! 👋</p>
+            )}
+          </div>
+          
+          {/* Botão de recarregar */}
+          <button
+            onClick={loadAppointments}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Calendar size={18} />
+            )}
+            <span className="hidden sm:inline">Atualizar</span>
+          </button>
+        </div>
 
         {/* Filters */}
         <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
@@ -188,7 +199,7 @@ export default function MeusAgendamentosPage() {
               filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Todos
+            Todos ({appointments.length})
           </button>
           <button
             onClick={() => setFilter('scheduled')}
@@ -196,7 +207,15 @@ export default function MeusAgendamentosPage() {
               filter === 'scheduled' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Agendados
+            Agendados ({appointments.filter(a => a.status === 'scheduled').length})
+          </button>
+          <button
+            onClick={() => setFilter('confirmed')}
+            className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+              filter === 'confirmed' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Confirmados ({appointments.filter(a => a.status === 'confirmed').length})
           </button>
           <button
             onClick={() => setFilter('completed')}
@@ -204,7 +223,7 @@ export default function MeusAgendamentosPage() {
               filter === 'completed' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Concluídos
+            Concluídos ({appointments.filter(a => a.status === 'completed').length})
           </button>
           <button
             onClick={() => setFilter('cancelled')}
@@ -212,17 +231,20 @@ export default function MeusAgendamentosPage() {
               filter === 'cancelled' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            Cancelados
+            Cancelados ({appointments.filter(a => a.status === 'cancelled').length})
           </button>
         </div>
 
         {/* Upcoming Appointments */}
         {upcomingAppointments.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Próximos Agendamentos</h2>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Calendar size={24} className="text-blue-400" />
+              Próximos Agendamentos
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {upcomingAppointments.map((appointment) => (
-                <div key={appointment.id} className="bg-gray-900 rounded-xl p-6">
+                <div key={appointment.id} className="bg-gray-900 rounded-xl p-6 border border-gray-800 hover:border-blue-600 transition">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-xl font-bold mb-1">{appointment.barbershop.name}</h3>
@@ -230,6 +252,13 @@ export default function MeusAgendamentosPage() {
                         {getStatusText(appointment.status)}
                       </span>
                     </div>
+                    {appointment.barbershop.logo && (
+                      <img 
+                        src={appointment.barbershop.logo} 
+                        alt={appointment.barbershop.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-3 mb-4">
@@ -260,6 +289,13 @@ export default function MeusAgendamentosPage() {
                     <p className="text-sm text-gray-400 mt-1">Barbeiro: {appointment.barber.name}</p>
                   </div>
 
+                  {appointment.notes && (
+                    <div className="bg-gray-800 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-gray-400 mb-1">Observações</p>
+                      <p className="text-sm">{appointment.notes}</p>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold text-blue-400">
                       R$ {appointment.price.toFixed(2)}
@@ -270,7 +306,7 @@ export default function MeusAgendamentosPage() {
                           setSelectedAppointment(appointment);
                           setShowCancelModal(true);
                         }}
-                        className="text-red-400 hover:text-red-300 text-sm font-medium"
+                        className="text-red-400 hover:text-red-300 text-sm font-medium transition"
                       >
                         Cancelar
                       </button>
@@ -285,10 +321,13 @@ export default function MeusAgendamentosPage() {
         {/* Past Appointments */}
         {pastAppointments.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Histórico</h2>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Clock size={24} className="text-gray-400" />
+              Histórico
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {pastAppointments.map((appointment) => (
-                <div key={appointment.id} className="bg-gray-900 rounded-xl p-6 opacity-75">
+                <div key={appointment.id} className="bg-gray-900 rounded-xl p-6 border border-gray-800 opacity-75">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-xl font-bold mb-1">{appointment.barbershop.name}</h3>
@@ -296,6 +335,13 @@ export default function MeusAgendamentosPage() {
                         {getStatusText(appointment.status)}
                       </span>
                     </div>
+                    {appointment.barbershop.logo && (
+                      <img 
+                        src={appointment.barbershop.logo} 
+                        alt={appointment.barbershop.name}
+                        className="w-12 h-12 rounded-lg object-cover opacity-60"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-3 mb-4">
@@ -323,7 +369,7 @@ export default function MeusAgendamentosPage() {
 
         {/* Empty State */}
         {filteredAppointments.length === 0 && (
-          <div className="bg-gray-900 rounded-xl p-12 text-center">
+          <div className="bg-gray-900 rounded-xl p-12 text-center border border-gray-800">
             <Calendar size={64} className="mx-auto text-gray-600 mb-4" />
             <h3 className="text-xl font-bold mb-2">Nenhum agendamento encontrado</h3>
             <p className="text-gray-400 mb-6">
@@ -344,13 +390,14 @@ export default function MeusAgendamentosPage() {
       {/* Cancel Modal */}
       {showCancelModal && selectedAppointment && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-8 relative">
+          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-8 relative border border-gray-800">
             <button
               onClick={() => {
                 setShowCancelModal(false);
                 setSelectedAppointment(null);
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              disabled={cancelLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white disabled:opacity-50"
             >
               <X size={24} />
             </button>
@@ -374,9 +421,11 @@ export default function MeusAgendamentosPage() {
               </p>
             </div>
 
-            <p className="text-sm text-gray-400 mb-6">
-              Ao cancelar, você libera o horário para outros clientes. Certifique-se antes de confirmar.
-            </p>
+            <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-200">
+                ⚠️ <strong>Atenção:</strong> Cancelamentos com menos de 2 horas de antecedência não são permitidos.
+              </p>
+            </div>
 
             <div className="flex gap-4">
               <button
@@ -384,15 +433,24 @@ export default function MeusAgendamentosPage() {
                   setShowCancelModal(false);
                   setSelectedAppointment(null);
                 }}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-semibold transition"
+                disabled={cancelLoading}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50"
               >
                 Voltar
               </button>
               <button
                 onClick={handleCancelAppointment}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition"
+                disabled={cancelLoading}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Confirmar Cancelamento
+                {cancelLoading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Cancelando...
+                  </>
+                ) : (
+                  'Confirmar Cancelamento'
+                )}
               </button>
             </div>
           </div>
