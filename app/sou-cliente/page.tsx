@@ -593,9 +593,9 @@
             <div className="flex items-center gap-2">
               <a href="/" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
                 <img
-                  src="/Logo.png"
+                  src="/Logo2.png"
                   alt="BarberFlow Logo"
-                  className="h-18 w-auto"
+                  className="h-16 w-auto"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
