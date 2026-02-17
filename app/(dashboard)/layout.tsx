@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils/cn';
 import { FileText } from 'lucide-react';
 import { BarChart3 } from 'lucide-react';
 import { useTheme } from '@/lib/hooks/useTheme'; // ✅ IMPORTAR HOOK
+import { Tutorial } from '@/components/tutorial/Tutorial'; // ✅ IMPORTAR TUTORIAL
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, barbershop, loading, signOut } = useAuth();
@@ -191,6 +192,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Bottom Navigation */}
       <BottomNav items={bottomNavItems} />
+
+      {/* ✅ TUTORIAL GUIADO */}
+      <Tutorial />
     </div>
   );
 }

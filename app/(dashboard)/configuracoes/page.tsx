@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Loader2 } from 'lucide-react';
+import { useTutorial } from '@/lib/hooks/useTutorial'; // ✅ IMPORTAR HOOK
 import { ConfiguracoesConta } from '@/components/configuracoes/ConfiguracoesConta';
 import { AlterarSenha } from '@/components/configuracoes/AlterarSenha';
 import { Preferencias } from '@/components/configuracoes/Preferencias';
@@ -11,6 +12,7 @@ import { ExcluirConta } from '@/components/configuracoes/ExcluirConta';
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
+  const { startTutorial } = useTutorial(); // ✅ HOOK DO TUTORIAL
 
   useEffect(() => {
     loadData();
@@ -190,6 +192,43 @@ export default function ConfiguracoesPage() {
 
             {/* Excluir Conta */}
             <ExcluirConta onDelete={handleDeleteAccount} />
+
+            {/* ✅ TUTORIAL GUIADO */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Ajuda e Tutorial</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Aprenda a usar o BarberFlow</p>
+                </div>
+              </div>
+
+              <button
+                onClick={startTutorial}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl hover:border-purple-400 dark:hover:border-purple-500 transition group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-600 rounded-lg group-hover:scale-110 transition">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Tutorial Guiado</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Faça um tour completo pelo sistema (20 passos)
+                    </p>
+                  </div>
+                </div>
+                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
