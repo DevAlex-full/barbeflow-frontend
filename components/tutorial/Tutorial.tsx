@@ -1,7 +1,7 @@
 // components/tutorial/Tutorial.tsx
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride';
 import { useTutorial } from '@/lib/hooks/useTutorial';
 import { tutorialSteps } from './TutorialSteps';
@@ -16,6 +16,43 @@ export function Tutorial() {
     setStepIndex,
     navigateToRoute
   } = useTutorial();
+
+  // ✅ Estado local para controlar montagem/desmontagem do Joyride
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 🔧 CONTROLE DE MONTAGEM/DESMONTAGEM
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  useEffect(() => {
+    if (run) {
+      console.log('✅ [Tutorial] Montando componente');
+      setShouldRender(true);
+    } else {
+      console.log('❌ [Tutorial] Desmontando componente');
+      setShouldRender(false);
+      
+      // ✅ LIMPEZA FORÇADA DOS PORTALS DO JOYRIDE
+      // Remove qualquer elemento do Joyride que possa ter ficado preso no DOM
+      setTimeout(() => {
+        const joyrideOverlay = document.querySelector('[class*="react-joyride__overlay"]');
+        const joyrideTooltip = document.querySelector('[class*="react-joyride__tooltip"]');
+        const joyrideSpotlight = document.querySelector('[class*="react-joyride__spotlight"]');
+        
+        if (joyrideOverlay) {
+          console.log('🧹 [Tutorial] Removendo overlay manualmente');
+          joyrideOverlay.remove();
+        }
+        if (joyrideTooltip) {
+          console.log('🧹 [Tutorial] Removendo tooltip manualmente');
+          joyrideTooltip.remove();
+        }
+        if (joyrideSpotlight) {
+          console.log('🧹 [Tutorial] Removendo spotlight manualmente');
+          joyrideSpotlight.remove();
+        }
+      }, 100); // Pequeno delay para garantir que o Joyride tentou limpar primeiro
+    }
+  }, [run]);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🧭 NAVEGAÇÃO AUTOMÁTICA
@@ -39,36 +76,52 @@ export function Tutorial() {
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
     const { status, type, index, action } = data;
 
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📚 [Tutorial Event]');
-    console.log('   Status:', status);
-    console.log('   Type:', type);
-    console.log('   Index:', index);
-    console.log('   Action:', action);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📚 [Tutorial Event]', { status, type, index, action });
+
+    // ✅ TUTORIAL COMPLETADO (botão Finalizar no último passo)
+    if (status === STATUS.FINISHED) {
+      console.log('🎉 [Tutorial] Completado!');
+      completeTutorial();
+      return;
+    }
+
+    // ✅ TUTORIAL PULADO (botão "Pular Tutorial")
+    if (status === STATUS.SKIPPED) {
+      console.log('⭐️ [Tutorial] Pulado!');
+      skipTutorial();
+      return;
+    }
+
+    // ✅ BOTÃO X CLICADO - ENCERRA O TUTORIAL
+    if (action === ACTIONS.CLOSE) {
+      console.log('✖️ [Tutorial] Botão X clicado - encerrando tutorial');
+      skipTutorial();
+      return;
+    }
 
     // ✅ NAVEGAÇÃO ENTRE PASSOS
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
-      
-      // Não ultrapassar limites
+
+      // ✅ FIX: Se tentou avançar além do último passo, significa que clicou "Finalizar"
+      if (nextIndex >= tutorialSteps.length && action === ACTIONS.NEXT) {
+        console.log('🎉 [Tutorial] Último passo concluído - finalizando');
+        completeTutorial();
+        return;
+      }
+
+      // Navegação normal entre passos
       if (nextIndex >= 0 && nextIndex < tutorialSteps.length) {
         setStepIndex(nextIndex);
       }
     }
-
-    // ✅ TUTORIAL COMPLETADO
-    if (status === STATUS.FINISHED) {
-      console.log('🎉 [Tutorial] Completado!');
-      completeTutorial();
-    }
-
-    // ✅ TUTORIAL PULADO
-    if (status === STATUS.SKIPPED) {
-      console.log('⏭️ [Tutorial] Pulado');
-      skipTutorial();
-    }
   }, [completeTutorial, skipTutorial, setStepIndex]);
+
+  // ✅ NÃO RENDERIZA SE NÃO DEVE ESTAR VISÍVEL
+  if (!shouldRender) {
+    console.log('⏸️ [Tutorial] Componente oculto (shouldRender = false)');
+    return null;
+  }
 
   return (
     <Joyride
