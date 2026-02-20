@@ -32,6 +32,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // ✅ Verificar status do plano em todas as páginas do dashboard
+  useEffect(() => {
+    // Não verificar na própria página de planos (evita loop de redirecionamento)
+    if (pathname === '/planos' || pathname.startsWith('/planos')) return;
+
+    async function checkPlan() {
+      try {
+        const token = localStorage.getItem('@barberFlow:token');
+        if (!token) return;
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com'}/api/barbershop/plan-status`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!response.ok) return;
+
+        const plan = await response.json();
+
+        if (plan.isExpired) {
+          router.push('/planos');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar plano no layout:', error);
+      }
+    }
+
+    if (!loading && user) {
+      checkPlan();
+    }
+  }, [pathname, loading, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
