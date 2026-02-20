@@ -3,7 +3,7 @@
 import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 interface PlanStatusBadgeProps {
-  status: 'active' | 'expired' | 'trial' | 'cancelled';
+  status: 'active' | 'expired' | 'trial' | 'cancelled' | 'suspended';
   daysRemaining?: number;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -27,7 +27,7 @@ export function PlanStatusBadge({ status, daysRemaining, size = 'md' }: PlanStat
       text: 'text-green-700',
       border: 'border-green-200',
       icon: CheckCircle,
-      label: daysRemaining && daysRemaining <= 7 
+      label: daysRemaining && daysRemaining <= 7
         ? `${daysRemaining} dias restantes`
         : 'Ativo'
     },
@@ -43,7 +43,7 @@ export function PlanStatusBadge({ status, daysRemaining, size = 'md' }: PlanStat
       text: 'text-blue-700',
       border: 'border-blue-200',
       icon: Clock,
-      label: daysRemaining 
+      label: daysRemaining
         ? `Trial - ${daysRemaining} dias`
         : 'Trial'
     },
@@ -53,6 +53,13 @@ export function PlanStatusBadge({ status, daysRemaining, size = 'md' }: PlanStat
       border: 'border-gray-200',
       icon: AlertCircle,
       label: 'Cancelado'
+    },
+    suspended: {
+      bg: 'bg-yellow-100',
+      text: 'text-yellow-700',
+      border: 'border-yellow-200',
+      icon: AlertCircle,
+      label: 'Suspenso'
     }
   };
 
