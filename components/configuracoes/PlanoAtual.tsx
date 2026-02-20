@@ -1,20 +1,58 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Crown, Check, TrendingUp, ExternalLink } from 'lucide-react';
-import { Plan, getPlanById, formatPrice, getPlanBadgeColor } from '@/lib/plans';
+import api from '@/lib/api';
+import { getPlanById, formatPrice, getPlanBadgeColor } from '@/lib/plans';
 
 interface PlanoAtualProps {
   currentPlanId: string;
 }
 
 export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
+  const [planStatus, setPlanStatus] = useState<any>(null);
+  const [currentSub, setCurrentSub] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const currentPlan = getPlanById(currentPlanId);
 
-  if (!currentPlan) {
-    return null;
-  }
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [statusRes, subRes] = await Promise.all([
+          api.get('/barbershop/plan-status'),
+          api.get('/subscriptions/current')
+        ]);
+        setPlanStatus(statusRes.data);
+        setCurrentSub(subRes.data);
+      } catch (error) {
+        console.error('Erro ao carregar dados do plano:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (!currentPlan) return null;
 
   const badgeColor = getPlanBadgeColor(currentPlanId);
+
+  // Preço correto: usa o preço real da assinatura, não o estático do plans.ts
+  const actualPrice = currentSub?.currentPlan?.price;
+  const isMonthly = currentSub?.currentPlan?.period === 'monthly' || !currentSub?.currentPlan?.period;
+  const priceLabel = actualPrice > 0
+    ? `${formatPrice(actualPrice)}/mês`
+    : currentPlanId === 'trial' ? 'Gratuito' : formatPrice(currentPlan.price) + '/mês';
+
+  // Data de expiração real do banco
+  const expiresAt = planStatus?.planExpiresAt;
+  const expiresFormatted = expiresAt
+    ? new Date(expiresAt).toLocaleDateString('pt-BR')
+    : null;
+
+  // Dias restantes
+  const daysRemaining = planStatus?.daysRemaining ?? 0;
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -37,13 +75,23 @@ export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
               {currentPlan.name}
             </span>
             <div className="flex items-baseline gap-2 mt-3">
-              <span className="text-4xl font-bold text-gray-900">
-                {formatPrice(currentPlan.price)}
-              </span>
-              <span className="text-gray-600">
-                /{currentPlan.interval === 'monthly' ? 'mês' : 'ano'}
-              </span>
+              {loading ? (
+                <div className="h-10 w-32 bg-gray-200 animate-pulse rounded" />
+              ) : (
+                <>
+                  <span className="text-4xl font-bold text-gray-900">
+                    {actualPrice > 0 ? formatPrice(actualPrice) : formatPrice(currentPlan.price)}
+                  </span>
+                  <span className="text-gray-600">/mês</span>
+                </>
+              )}
             </div>
+            {/* Dias restantes */}
+            {!loading && daysRemaining > 0 && currentPlanId !== 'trial' && (
+              <p className="text-sm text-purple-600 font-medium mt-1">
+                {daysRemaining} dias restantes
+              </p>
+            )}
           </div>
         </div>
 
@@ -102,15 +150,34 @@ export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
         </div>
       </div>
 
-      {/* Informações Adicionais */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <p className="text-sm text-blue-900 font-semibold mb-2">
-          💡 Próxima cobrança
-        </p>
-        <p className="text-sm text-blue-700">
-          Sua próxima cobrança será em <strong>02/03/2026</strong> no valor de <strong>{formatPrice(currentPlan.price)}</strong>.
-        </p>
-      </div>
+      {/* Próxima cobrança */}
+      {!loading && expiresFormatted && currentPlanId !== 'trial' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-sm text-blue-900 font-semibold mb-2">
+            💡 Próxima cobrança
+          </p>
+          <p className="text-sm text-blue-700">
+            Sua próxima cobrança será em{' '}
+            <strong>{expiresFormatted}</strong> no valor de{' '}
+            <strong>
+              {actualPrice > 0 ? formatPrice(actualPrice) : formatPrice(currentPlan.price)}
+            </strong>.
+          </p>
+        </div>
+      )}
+
+      {/* Trial info */}
+      {!loading && currentPlanId === 'trial' && daysRemaining > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <p className="text-sm text-yellow-900 font-semibold mb-1">
+            ⏳ Período de teste
+          </p>
+          <p className="text-sm text-yellow-700">
+            Seu trial expira em <strong>{expiresFormatted}</strong>.{' '}
+            Restam <strong>{daysRemaining} dias</strong>.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

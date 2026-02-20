@@ -24,6 +24,7 @@ interface PriceInfo {
 export default function PlansPage() {
   const [plans, setPlans] = useState<any>(null);
   const [currentSub, setCurrentSub] = useState<CurrentSubscription | null>(null);
+  const [planStatus, setPlanStatus] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'semiannual' | 'annual'>('annual');
   const [priceCache, setPriceCache] = useState<Record<string, PriceInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -34,12 +35,14 @@ export default function PlansPage() {
 
   async function loadData() {
     try {
-      const [plansRes, subRes] = await Promise.all([
+      const [plansRes, subRes, statusRes] = await Promise.all([
         api.get('/subscriptions/plans'),
-        api.get('/subscriptions/current')
+        api.get('/subscriptions/current'),
+        api.get('/barbershop/plan-status')
       ]);
       setPlans(plansRes.data);
       setCurrentSub(subRes.data);
+      setPlanStatus(statusRes.data);
     } catch (error) {
       console.error('Erro:', error);
     } finally {
@@ -166,6 +169,8 @@ export default function PlansPage() {
               <p className="mt-2 opacity-90 text-sm md:text-base">
                 {currentSub.trial.isInTrial ? (
                   `${currentSub.trial.daysLeft} dias restantes no teste`
+                ) : planStatus?.daysRemaining > 0 ? (
+                  `${planStatus.daysRemaining} dias restantes • R$ ${currentSub.currentPlan.price?.toFixed(2) || '0.00'}/mês`
                 ) : (
                   `R$ ${currentSub.currentPlan.price?.toFixed(2) || '0.00'}/mês`
                 )}
@@ -290,7 +295,11 @@ export default function PlansPage() {
                     </div>
                     {selectedPeriod !== 'monthly' && (
                       <div className="text-xs md:text-sm text-gray-500 mt-1">
-                        R$ {priceInfo.monthlyEquivalent?.toFixed(2) || '0.00'}/mês
+                        R$ {(
+                          priceInfo.monthlyEquivalent > 0
+                            ? priceInfo.monthlyEquivalent
+                            : priceInfo.price / (selectedPeriod === 'annual' ? 12 : 6)
+                        ).toFixed(2)}/mês
                       </div>
                     )}
                     {priceInfo.savings > 0 && (
