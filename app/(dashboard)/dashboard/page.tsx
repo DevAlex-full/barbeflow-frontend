@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Calendar, Users, Scissors, DollarSign, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -12,6 +13,8 @@ import { TopServicesCard } from '@/components/dashboard/TopServicesCard';
 import { OccupancyCard } from '@/components/dashboard/OccupancyCard';
 import { ComparisonCard } from '@/components/dashboard/ComparisonCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { PlanExpiredModal } from '@/components/dashboard/PlanExpiredModal';
+import { PlanExpiringAlert } from '@/components/dashboard/PlanExpiringAlert';
 
 interface Customer {
   id: string;
@@ -60,14 +63,53 @@ interface ChartData {
   };
 }
 
+interface PlanStatus {
+  plan: string;
+  planStatus: string;
+  planExpiresAt: string | null;
+  daysRemaining: number;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [charts, setCharts] = useState<ChartData | null>(null);
+  const [planStatus, setPlanStatus] = useState<PlanStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    loadDashboardData();
+    checkPlanStatus();
   }, []);
+
+  async function checkPlanStatus() {
+    try {
+      // Verificar status do plano primeiro
+      const planResponse = await api.get('/barbershop/plan-status');
+      const plan = planResponse.data;
+      setPlanStatus(plan);
+
+      // Se plano expirou, não carregar dados do dashboard
+      if (plan.isExpired) {
+        setLoading(false);
+        return;
+      }
+
+      // Plano ativo - carregar dashboard normalmente
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error('Erro ao verificar plano:', error);
+      
+      // Se API retornou erro de plano expirado
+      if (error.response?.data?.planExpired) {
+        // Redirecionar para planos
+        router.push('/planos');
+      }
+      
+      setLoading(false);
+    }
+  }
 
   async function loadDashboardData() {
     try {
@@ -76,13 +118,15 @@ export default function DashboardPage() {
         api.get('/dashboard/charts')
       ]);
 
-      console.log('📊 Stats recebidas:', statsResponse.data);
-      console.log('📈 Charts recebidos:', chartsResponse.data);
-
       setStats(statsResponse.data);
       setCharts(chartsResponse.data);
-    } catch (error) {
-      console.error('❌ Erro ao carregar dashboard:', error);
+    } catch (error: any) {
+      console.error('Erro ao carregar dashboard:', error);
+      
+      // Se API retornou erro de plano expirado durante carregamento
+      if (error.response?.data?.planExpired) {
+        router.push('/planos');
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +143,17 @@ export default function DashboardPage() {
     );
   }
 
+  // Mostrar modal se plano expirou
+  if (planStatus?.isExpired) {
+    return (
+      <PlanExpiredModal
+        isOpen={true}
+        planName={planStatus.plan}
+        expiredDate={planStatus.planExpiresAt || new Date().toISOString()}
+      />
+    );
+  }
+
   const validAppointments = stats?.upcomingAppointments?.filter(
     (appointment) => 
       appointment?.customer && 
@@ -108,6 +163,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Alerta de Expiração (7 dias) */}
+      {planStatus && planStatus.isExpiringSoon && (
+        <PlanExpiringAlert
+          daysRemaining={planStatus.daysRemaining}
+          planName={planStatus.plan}
+          expiresAt={planStatus.planExpiresAt || new Date().toISOString()}
+        />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

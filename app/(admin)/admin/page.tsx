@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { BarbershopsStatsChart } from '@/components/admin/BarbershopsStatsChart';
 
 interface DashboardStats {
   barbershops: {
     total: number;
     active: number;
+    expired: number; // ✅ NOVO
     newThisMonth: number;
   };
   users: {
@@ -84,19 +86,34 @@ export default function AdminDashboard() {
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-        {/* Barbearias */}
+        {/* Barbearias Ativas */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <div className="flex items-center justify-between mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="text-green-600 text-xs md:text-sm font-semibold">+{stats.barbershops.newThisMonth}</span>
+            <span className="text-green-600 text-xs md:text-sm font-semibold">Ativas</span>
           </div>
-          <p className="text-gray-600 text-xs md:text-sm mb-1">Barbearias</p>
-          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.barbershops.total}</p>
-          <p className="text-xs md:text-sm text-gray-500 mt-2">{stats.barbershops.active} ativas</p>
+          <p className="text-gray-600 text-xs md:text-sm mb-1">Barbearias Ativas</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.barbershops.active}</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-2">Total: {stats.barbershops.total}</p>
+        </div>
+
+        {/* Barbearias Expiradas - NOVO */}
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-red-600 text-xs md:text-sm font-semibold">Expiradas</span>
+          </div>
+          <p className="text-gray-600 text-xs md:text-sm mb-1">Barbearias Expiradas</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.barbershops.expired}</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-2">Sem acesso ao sistema</p>
         </div>
 
         {/* MRR */}
@@ -129,20 +146,11 @@ export default function AdminDashboard() {
           <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.subscriptions.active}</p>
           <p className="text-xs md:text-sm text-gray-500 mt-2">Ativas</p>
         </div>
+      </div>
 
-        {/* Usuários */}
-        <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-gray-600 text-xs md:text-sm mb-1">Usuários</p>
-          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.users.total}</p>
-          <p className="text-xs md:text-sm text-gray-500 mt-2">{stats.customers.total} clientes</p>
-        </div>
+      {/* Gráfico de Status das Barbearias - NOVO */}
+      <div className="mb-6 md:mb-8">
+        <BarbershopsStatsChart />
       </div>
 
       {/* Receita Total */}

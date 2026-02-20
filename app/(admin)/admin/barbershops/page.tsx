@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { Clock, AlertTriangle } from 'lucide-react';
 
 interface Barbershop {
   id: string;
@@ -13,6 +14,7 @@ interface Barbershop {
   plan: string;
   planStatus: string;
   planExpiresAt: string | null;
+  daysRemaining: number; // ✅ ADICIONADO
   totalUsers: number;
   totalCustomers: number;
   totalAppointments: number;
@@ -81,10 +83,39 @@ export default function BarbershopsPage() {
   const getStatusBadgeColor = (status: string) => {
     const colors: Record<string, string> = {
       active: 'bg-green-100 text-green-800',
+      expired: 'bg-red-100 text-red-800', // ✅ ADICIONADO
       cancelled: 'bg-red-100 text-red-800',
       suspended: 'bg-yellow-100 text-yellow-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  // ✅ NOVA FUNÇÃO: Badge de dias restantes
+  const getDaysRemainingBadge = (daysRemaining: number, planStatus: string) => {
+    if (planStatus === 'expired' || daysRemaining <= 0) {
+      return (
+        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+          <AlertTriangle size={12} />
+          <span className="font-semibold">Expirado</span>
+        </div>
+      );
+    }
+
+    if (daysRemaining <= 7) {
+      return (
+        <div className="flex items-center gap-1 text-xs text-orange-600 mt-1">
+          <Clock size={12} />
+          <span className="font-semibold">{daysRemaining} dia{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+        <Clock size={12} />
+        <span>{daysRemaining} dias restantes</span>
+      </div>
+    );
   };
 
   const formatDate = (date: string) => {
@@ -155,6 +186,7 @@ export default function BarbershopsPage() {
             >
               <option value="all">Todos</option>
               <option value="active">Ativo</option>
+              <option value="expired">Expirado</option>
               <option value="cancelled">Cancelado</option>
               <option value="suspended">Suspenso</option>
             </select>
@@ -245,10 +277,13 @@ export default function BarbershopsPage() {
                             Expira: {formatDate(barbershop.planExpiresAt)}
                           </div>
                         )}
+                        {/* ✅ DIAS RESTANTES */}
+                        {getDaysRemainingBadge(barbershop.daysRemaining, barbershop.planStatus)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(barbershop.planStatus)}`}>
                           {barbershop.planStatus === 'active' ? 'Ativo' : 
+                           barbershop.planStatus === 'expired' ? 'Expirado' :
                            barbershop.planStatus === 'cancelled' ? 'Cancelado' : 
                            'Suspenso'}
                         </span>
