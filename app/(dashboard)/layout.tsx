@@ -19,6 +19,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
+import api from '@/lib/api';
 import { cn } from '@/lib/utils/cn';
 import { FileText } from 'lucide-react';
 import { BarChart3 } from 'lucide-react';
@@ -32,36 +33,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ✅ Verificar status do plano em todas as páginas do dashboard
+  // ✅ Verificar status do plano em todas as páginas — igual ao dashboard
   useEffect(() => {
-    // Não verificar na própria página de planos (evita loop de redirecionamento)
+    // Não verificar na própria página de planos (evita loop)
     if (pathname === '/planos' || pathname.startsWith('/planos')) return;
+    if (loading || !user) return;
 
     async function checkPlan() {
       try {
-        const token = localStorage.getItem('@barberFlow:token');
-        if (!token) return;
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com'}/api/barbershop/plan-status`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (!response.ok) return;
-
-        const plan = await response.json();
+        const response = await api.get('/barbershop/plan-status');
+        const plan = response.data;
 
         if (plan.isExpired) {
           router.push('/planos');
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.response?.data?.planExpired) {
+          router.push('/planos');
+        }
         console.error('Erro ao verificar plano no layout:', error);
       }
     }
 
-    if (!loading && user) {
-      checkPlan();
-    }
+    checkPlan();
   }, [pathname, loading, user]);
 
   if (loading) {
