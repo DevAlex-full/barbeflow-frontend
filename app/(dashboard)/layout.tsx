@@ -33,10 +33,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ✅ Verificar status do plano em todas as páginas — igual ao dashboard
+  // ✅ Verificar plano em todas as páginas exceto /dashboard e /planos
+  // O /dashboard tem seu próprio tratamento com PlanExpiredModal
+  // O /planos é excluído para evitar loop de redirecionamento
   useEffect(() => {
-    // Não verificar na própria página de planos (evita loop)
     if (pathname === '/planos' || pathname.startsWith('/planos')) return;
+    if (pathname === '/dashboard') return;
     if (loading || !user) return;
 
     async function checkPlan() {
