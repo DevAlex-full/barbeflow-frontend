@@ -39,11 +39,8 @@ export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
   const badgeColor = getPlanBadgeColor(currentPlanId);
 
   // Preço correto: usa o preço real da assinatura, não o estático do plans.ts
-  const actualPrice = currentSub?.currentPlan?.price;
-  const isMonthly = currentSub?.currentPlan?.period === 'monthly' || !currentSub?.currentPlan?.period;
-  const priceLabel = actualPrice > 0
-    ? `${formatPrice(actualPrice)}/mês`
-    : currentPlanId === 'trial' ? 'Gratuito' : formatPrice(currentPlan.price) + '/mês';
+  const actualMonthlyPrice = currentSub?.currentPlan?.price;
+  const actualYearlyPrice = currentSub?.currentPlan?.yearlyPrice;
 
   // Data de expiração real do banco
   const expiresAt = planStatus?.planExpiresAt;
@@ -80,7 +77,7 @@ export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
               ) : (
                 <>
                   <span className="text-4xl font-bold text-gray-900">
-                    {actualPrice > 0 ? formatPrice(actualPrice) : formatPrice(currentPlan.price)}
+                    {actualMonthlyPrice > 0 ? formatPrice(actualMonthlyPrice) : formatPrice(currentPlan.price)}
                   </span>
                   <span className="text-gray-600">/mês</span>
                 </>
@@ -160,8 +157,17 @@ export function PlanoAtual({ currentPlanId }: PlanoAtualProps) {
             Sua próxima cobrança será em{' '}
             <strong>{expiresFormatted}</strong> no valor de{' '}
             <strong>
-              {actualPrice > 0 ? formatPrice(actualPrice) : formatPrice(currentPlan.price)}
-            </strong>.
+              {actualYearlyPrice > 0
+                ? formatPrice(actualYearlyPrice)
+                : actualMonthlyPrice > 0
+                ? formatPrice(actualMonthlyPrice)
+                : formatPrice(currentPlan.price)}
+            </strong>
+            {actualYearlyPrice > 0 && actualMonthlyPrice > 0 && (
+              <span className="text-blue-600 font-normal">
+                {' '}(12x de {formatPrice(actualMonthlyPrice)})
+              </span>
+            )}.
           </p>
         </div>
       )}
