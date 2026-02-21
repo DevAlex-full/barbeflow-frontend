@@ -87,6 +87,7 @@ export default function BarbershopLanding() {
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
   const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -297,6 +298,7 @@ export default function BarbershopLanding() {
       router.push('/sou-cliente');
       return;
     }
+    setIsBooking(true);
     try {
       const token = sessionStorage.getItem('@barberFlow:client:token');
       if (!token) {
@@ -332,6 +334,8 @@ export default function BarbershopLanding() {
     } catch (error) {
       console.error('Erro:', error);
       setBookingError('Erro ao criar agendamento. Tente novamente.');
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -1294,10 +1298,17 @@ export default function BarbershopLanding() {
                           </button>
                           <button
                             onClick={handleConfirmBooking}
-                            disabled={!selectedTime}
-                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold transition shadow-lg shadow-green-500/50"
+                            disabled={!selectedTime || isBooking}
+                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold transition shadow-lg shadow-green-500/50 flex items-center justify-center gap-2"
                           >
-                            Confirmar
+                            {isBooking ? (
+                              <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Confirmando...
+                              </>
+                            ) : (
+                              'Confirmar'
+                            )}
                           </button>
                         </div>
                       </>
