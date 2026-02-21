@@ -306,12 +306,16 @@ export default function BarbershopLanding() {
         router.push('/sou-cliente');
         return;
       }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
+        signal: controller.signal,
         body: JSON.stringify({
           barbershopId: barbershopId,
           barberId: selectedBarber,
@@ -319,6 +323,7 @@ export default function BarbershopLanding() {
           date: selectedTime
         })
       });
+      clearTimeout(timeoutId);
       const data = await response.json();
       if (!response.ok) {
         setBookingError(data.error || 'Erro ao criar agendamento');
@@ -331,11 +336,13 @@ export default function BarbershopLanding() {
         resetBooking();
         router.push('/meus-agendamentos');
       }, 2500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro:', error);
-      setBookingError('Erro ao criar agendamento. Tente novamente.');
-    } finally {
-      setIsBooking(false);
+      if (error.name === 'AbortError') {
+        setBookingError('Servidor demorou para responder. Verifique seus agendamentos antes de tentar novamente.');
+      } else {
+        setBookingError('Erro ao criar agendamento. Tente novamente.');
+      }
     }
   };
 

@@ -298,7 +298,7 @@ export default function MeusAgendamentosPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold text-blue-400">
-                      R$ {appointment.price.toFixed(2)}
+                      R$ {Number(appointment.price).toFixed(2)}
                     </span>
                     {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
                       <button
