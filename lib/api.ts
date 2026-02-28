@@ -20,7 +20,7 @@ const getApiBaseUrl = (): string => {
 
   // 3. Fallback para produção
   console.log('☁️ Usando URL de produção (fallback)');
-  return 'https://barberflow-api-v2.onrender.com/api';
+  return 'https://barberflow-back-end-19nv.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

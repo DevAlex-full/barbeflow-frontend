@@ -27,7 +27,7 @@ export default function ConfiguracoesPage() {
       }
 
       // Buscar dados do usuário logado
-      const userResponse = await fetch('https://barberflow-api-v2.onrender.com/api/auth/me', {
+      const userResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -47,7 +47,7 @@ export default function ConfiguracoesPage() {
 
   const handleSaveDadosPessoais = async (data: any) => {
     const token = localStorage.getItem('@barberFlow:token');
-    const response = await fetch('https://barberflow-api-v2.onrender.com/api/users/profile', {
+    const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/users/profile', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export default function ConfiguracoesPage() {
 
   const handleSaveSenha = async (data: { currentPassword: string; newPassword: string }) => {
     const token = localStorage.getItem('@barberFlow:token');
-    const response = await fetch('https://barberflow-api-v2.onrender.com/api/users/change-password', {
+    const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/users/change-password', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ export default function ConfiguracoesPage() {
 
   const handleSavePreferencias = async (data: any) => {
     const token = localStorage.getItem('@barberFlow:token');
-    const response = await fetch('https://barberflow-api-v2.onrender.com/api/users/preferences', {
+    const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/users/preferences', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export default function ConfiguracoesPage() {
 
   const handleDeleteAccount = async (password: string) => {
     const token = localStorage.getItem('@barberFlow:token');
-    const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
+    const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

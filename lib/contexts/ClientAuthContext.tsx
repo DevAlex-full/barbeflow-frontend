@@ -99,7 +99,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('🔐 [CLIENT] Tentando fazer login:', email);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-back-end-19nv.onrender.com/api';
       const response = await fetch(`${API_URL}/client/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +129,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('🔐 [CLIENT] Tentando criar conta:', data.email);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-api-v2.onrender.com/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://barberflow-back-end-19nv.onrender.com/api';
       const response = await fetch(`${API_URL}/client/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

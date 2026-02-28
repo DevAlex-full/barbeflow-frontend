@@ -189,7 +189,7 @@ export default function BarbershopLanding() {
 
   const fetchBarbershopData = async () => {
     try {
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}`);
+      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/public/barbershops/${barbershopId}`);
       if (!response.ok) {
         router.push('/sou-cliente');
         return;
@@ -246,7 +246,7 @@ export default function BarbershopLanding() {
       console.log('📅 Enviando data:', dateToSend);
 
       const response = await fetch(
-        `https://barberflow-api-v2.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
+        `https://barberflow-back-end-19nv.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
       );
 
       if (response.ok) {
@@ -309,7 +309,7 @@ export default function BarbershopLanding() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/client/appointments', {
+      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/client/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -123,7 +123,7 @@ export default function ConfigurarLandingPage() {
         setBarbershopId(user.barbershopId);
       }
 
-      const configResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
+      const configResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -132,7 +132,7 @@ export default function ConfigurarLandingPage() {
         setConfig({ ...config, ...data });
       }
 
-      const barbershopResponse = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop', {
+      const barbershopResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -154,7 +154,7 @@ export default function ConfigurarLandingPage() {
       const token = localStorage.getItem('@barberFlow:token');
       if (!token) return;
 
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/users', {
+      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -213,8 +213,8 @@ export default function ConfigurarLandingPage() {
       }
 
       const url = editingUser
-        ? `https://barberflow-api-v2.onrender.com/api/users/${editingUser.id}`
-        : 'https://barberflow-api-v2.onrender.com/api/users';
+        ? `https://barberflow-back-end-19nv.onrender.com/api/users/${editingUser.id}`
+        : 'https://barberflow-back-end-19nv.onrender.com/api/users';
 
       const method = editingUser ? 'PUT' : 'POST';
 
@@ -252,7 +252,7 @@ export default function ConfigurarLandingPage() {
   const handleToggleUser = async (id: string) => {
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/users/${id}/toggle`, {
+      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/users/${id}/toggle`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -273,7 +273,7 @@ export default function ConfigurarLandingPage() {
 
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/users/${id}`, {
+      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -301,7 +301,7 @@ export default function ConfigurarLandingPage() {
         return;
       }
 
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/barbershop/config', {
+      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop/config', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ export default function ConfigurarLandingPage() {
     setUploading(true);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload/barbershop-logo', {
+      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/upload/barbershop-logo', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -376,7 +376,7 @@ export default function ConfigurarLandingPage() {
     setUploadingAvatar(userId);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-api-v2.onrender.com/api/upload/user-avatar/${userId}`, {
+      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/upload/user-avatar/${userId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -415,7 +415,7 @@ export default function ConfigurarLandingPage() {
     setUploading(true);
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-api-v2.onrender.com/api/upload', {
+      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
