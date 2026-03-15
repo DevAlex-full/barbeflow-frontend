@@ -2,76 +2,151 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Bell, 
-  Globe, 
-  Shield, 
-  Moon, 
-  Sun,
-  Trash2,
-  ChevronRight 
+import {
+  ArrowLeft, User, Shield, Settings2, Trash2,
 } from 'lucide-react';
 import { useClientAuth } from '@/lib/contexts/ClientAuthContext';
+import clientApi from '@/lib/client-api';
+import { ConfiguracoesConta } from '@/components/configuracoes/ConfiguracoesConta';
+import { AlterarSenha } from '@/components/configuracoes/AlterarSenha';
+import { Preferencias } from '@/components/configuracoes/Preferencias';
+import { ExcluirConta } from '@/components/configuracoes/ExcluirConta';
 
-export default function ConfiguracoesPage() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Tipos
+// ─────────────────────────────────────────────────────────────────────────────
+type Tab = 'conta' | 'senha' | 'preferencias' | 'excluir';
+
+interface TabConfig {
+  id: Tab;
+  label: string;
+  icon: React.ReactNode;
+  danger?: boolean;
+}
+
+const TABS: TabConfig[] = [
+  { id: 'conta', label: 'Conta', icon: <User size={16} /> },
+  { id: 'senha', label: 'Segurança', icon: <Shield size={16} /> },
+  { id: 'preferencias', label: 'Preferências', icon: <Settings2 size={16} /> },
+  { id: 'excluir', label: 'Excluir', icon: <Trash2 size={16} />, danger: true },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
+export default function MinhasConfiguracoesPage() {
   const router = useRouter();
-  const { client, isAuthenticated, loading } = useClientAuth();
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: true,
-    push: false
-  });
+  const { client: user, loading: authLoading } = useClientAuth();
 
+  const [activeTab, setActiveTab] = useState<Tab>('conta');
+  const [userData, setUserData] = useState<any>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Redirecionar se não autenticado
+  // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (!authLoading && !user) router.push('/sou-cliente');
+  }, [authLoading, user, router]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Carregar dados do cliente
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    async function load() {
+      try {
+        const res = await clientApi.get('/client/auth/me');
+        setUserData(res.data);
+      } catch (e) {
+        console.error('Erro ao carregar usuário:', e);
+      } finally {
+        setPageLoading(false);
+      }
+    }
+    load();
+  }, [user]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Handlers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async function handleSaveConta(data: { name: string; email: string; phone: string }) {
+    try {
+      const res = await clientApi.put('/client/auth/profile', data);
+      setUserData((prev: any) => ({ ...prev, ...res.data }));
+
+      const stored = sessionStorage.getItem('@barberFlow:client:user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        sessionStorage.setItem('@barberFlow:client:user', JSON.stringify({ ...parsed, ...data }));
+      }
+    } catch (e: any) {
+      throw new Error(e.response?.data?.error || 'Erro ao salvar dados');
+    }
+  }
+
+  async function handleAlterarSenha(data: { currentPassword: string; newPassword: string }) {
+    try {
+      await clientApi.put('/client/auth/change-password', data);
+    } catch (e: any) {
+      throw new Error(e.response?.data?.error || 'Erro ao alterar senha');
+    }
+  }
+
+  async function handleSavePreferencias(data: any) {
+    try {
+      await clientApi.put('/client/auth/preferences', data);
+      setUserData((prev: any) => ({ ...prev, preferences: data }));
+    } catch (e: any) {
+      throw new Error(e.response?.data?.error || 'Erro ao salvar preferências');
+    }
+  }
+
+  async function handleExcluirConta(password: string) {
+    try {
+      await clientApi.delete('/client/auth/account', { data: { password } });
+      sessionStorage.removeItem('@barberFlow:client:token');
+      sessionStorage.removeItem('@barberFlow:client:user');
       router.push('/sou-cliente');
+    } catch (e: any) {
+      throw new Error(e.response?.data?.error || 'Erro ao excluir conta');
     }
-  }, [loading, isAuthenticated, router]);
+  }
 
-  useEffect(() => {
-    const savedTheme = sessionStorage.getItem('@barberFlow:theme') as 'dark' | 'light' || 'dark';
-    setTheme(savedTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    sessionStorage.setItem('@barberFlow:theme', newTheme);
-
-    if (newTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    if (confirm('⚠️ Tem certeza que deseja excluir sua conta? Esta ação é irreversível!')) {
-      // TODO: Implementar exclusão de conta
-      alert('Funcionalidade em desenvolvimento');
-    }
-  };
-
-  if (loading || !client) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Loading / Guard
+  // ─────────────────────────────────────────────────────────────────────────
+  if (authLoading || pageLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
 
+  if (!user || !userData) return null;
+
+  const preferences = userData.preferences || {
+    emailNotifications: true,
+    smsNotifications: false,
+    whatsappNotifications: true,
+    theme: 'light',
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+
+      {/* ── Header ── */}
+      <header className="border-b border-gray-800 px-4 py-4 sticky top-0 bg-black z-10">
+        <div className="max-w-5xl mx-auto flex items-center gap-4">
           <button
             onClick={() => router.back()}
             className="p-2 hover:bg-gray-800 rounded-lg transition"
+            aria-label="Voltar"
           >
             <ArrowLeft size={20} />
           </button>
@@ -82,194 +157,94 @@ export default function ConfiguracoesPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Notificações */}
-        <div className="bg-[#151b23] rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Bell size={20} className="text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-bold">Notificações</h3>
-                <p className="text-sm text-gray-400">Como você quer ser notificado</p>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
 
-          <div className="divide-y divide-gray-800">
-            <div className="p-6 flex items-center justify-between">
-              <div>
-                <p className="font-medium">Notificações por Email</p>
-                <p className="text-sm text-gray-400">Receba lembretes por email</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notifications.email}
-                  onChange={(e) => setNotifications({ ...notifications, email: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-              </label>
-            </div>
+          {/* ── Sidebar de Tabs ── */}
+          <aside className="lg:w-56 flex-shrink-0">
+            <nav className="bg-[#151b23] rounded-2xl border border-gray-800 overflow-hidden">
+              {TABS.map((tab, i) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-5 py-4 text-sm font-medium text-left transition
+                    ${i < TABS.length - 1 ? 'border-b border-gray-800' : ''}
+                    ${activeTab === tab.id
+                      ? tab.danger
+                        ? 'bg-red-900/20 text-red-400'
+                        : 'bg-blue-900/20 text-blue-400'
+                      : tab.danger
+                        ? 'text-red-500 hover:bg-red-900/10'
+                        : 'text-gray-300 hover:bg-gray-800/50'
+                    }
+                  `}
+                >
+                  <span className={activeTab === tab.id ? '' : 'opacity-60'}>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
 
-            <div className="p-6 flex items-center justify-between">
-              <div>
-                <p className="font-medium">Notificações por SMS</p>
-                <p className="text-sm text-gray-400">Receba lembretes por SMS</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notifications.sms}
-                  onChange={(e) => setNotifications({ ...notifications, sms: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-              </label>
-            </div>
-
-            <div className="p-6 flex items-center justify-between">
-              <div>
-                <p className="font-medium">Notificações Push</p>
-                <p className="text-sm text-gray-400">Receba notificações no navegador</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notifications.push}
-                  onChange={(e) => setNotifications({ ...notifications, push: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Aparência */}
-        <div className="bg-[#151b23] rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                {theme === 'dark' ? (
-                  <Moon size={20} className="text-purple-400" />
-                ) : (
-                  <Sun size={20} className="text-yellow-400" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold">Aparência</h3>
-                <p className="text-sm text-gray-400">Personalize a interface</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <button
-              onClick={toggleTheme}
-              className="w-full flex items-center justify-between p-4 bg-[#1f2937] hover:bg-[#374151] rounded-lg transition"
-            >
+            {/* Info do cliente na sidebar */}
+            <div className="mt-4 bg-[#151b23] rounded-2xl p-4 border border-gray-800">
               <div className="flex items-center gap-3">
-                {theme === 'dark' ? (
-                  <>
-                    <Moon size={20} className="text-blue-400" />
-                    <span>Tema Escuro</span>
-                  </>
-                ) : (
-                  <>
-                    <Sun size={20} className="text-yellow-400" />
-                    <span>Tema Claro</span>
-                  </>
-                )}
-              </div>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Idioma */}
-        <div className="bg-[#151b23] rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <Globe size={20} className="text-green-400" />
-              </div>
-              <div>
-                <h3 className="font-bold">Idioma</h3>
-                <p className="text-sm text-gray-400">Escolha seu idioma preferido</p>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {(userData.name || 'C').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{userData.name}</p>
+                  <p className="text-xs text-gray-500 truncate">Cliente</p>
+                </div>
               </div>
             </div>
-          </div>
+          </aside>
 
-          <div className="p-6">
-            <select className="w-full bg-[#1f2937] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
-              <option value="pt-BR">Português (Brasil)</option>
-              <option value="en-US">English (US)</option>
-              <option value="es-ES">Español</option>
-            </select>
-          </div>
-        </div>
+          {/* ── Conteúdo da Tab ── */}
+          <main className="flex-1 min-w-0">
 
-        {/* Privacidade & Segurança */}
-        <div className="bg-[#151b23] rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                <Shield size={20} className="text-yellow-400" />
+            {activeTab === 'conta' && (
+              <ConfiguracoesConta
+                initialData={{
+                  name: userData.name || '',
+                  email: userData.email || '',
+                  phone: (userData.phone && !userData.phone.includes('@')) ? userData.phone : '',
+                }}
+                onSave={handleSaveConta}
+              />
+            )}
+
+            {activeTab === 'senha' && (
+              <AlterarSenha onSave={handleAlterarSenha} />
+            )}
+
+            {activeTab === 'preferencias' && (
+              <Preferencias
+                initialData={{
+                  emailNotifications: preferences.emailNotifications ?? true,
+                  smsNotifications: preferences.smsNotifications ?? false,
+                  whatsappNotifications: preferences.whatsappNotifications ?? true,
+                  theme: preferences.theme ?? 'light',
+                }}
+                onSave={handleSavePreferencias}
+              />
+            )}
+
+            {activeTab === 'excluir' && (
+              <div className="space-y-4">
+                <div className="bg-red-900/20 border border-red-800 rounded-2xl p-5">
+                  <h3 className="font-bold text-red-300 mb-1 flex items-center gap-2">
+                    <Trash2 size={18} />
+                    Zona de Perigo
+                  </h3>
+                  <p className="text-sm text-red-400">
+                    As ações abaixo são irreversíveis. Prossiga com cautela.
+                  </p>
+                </div>
+                <ExcluirConta onDelete={handleExcluirConta} />
               </div>
-              <div>
-                <h3 className="font-bold">Privacidade & Segurança</h3>
-                <p className="text-sm text-gray-400">Gerencie seus dados</p>
-              </div>
-            </div>
-          </div>
+            )}
 
-          <div className="divide-y divide-gray-800">
-            <button
-              onClick={() => router.push('/privacidade-cliente')}
-              className="w-full p-6 flex items-center justify-between hover:bg-gray-800/50 transition text-left"
-            >
-              <span>Política de Privacidade</span>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-
-            <button
-              onClick={() => router.push('/termos-cliente')}
-              className="w-full p-6 flex items-center justify-between hover:bg-gray-800/50 transition text-left"
-            >
-              <span>Termos de Uso</span>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Zona de Perigo */}
-        <div className="bg-red-500/5 border border-red-500/20 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-red-500/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <Trash2 size={20} className="text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-bold text-red-400">Zona de Perigo</h3>
-                <p className="text-sm text-gray-400">Ações irreversíveis</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-400 py-3 rounded-lg font-medium transition"
-            >
-              Excluir minha conta
-            </button>
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              Esta ação não pode ser desfeita
-            </p>
-          </div>
+          </main>
         </div>
       </div>
     </div>
