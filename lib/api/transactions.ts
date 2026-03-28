@@ -41,6 +41,12 @@ export interface CreateTransactionData {
   amount: number;
   date: string;
   paymentMethod?: string;
+  // Receita manual com barbeiro
+  barberId?: string;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  serviceName?: string;
 }
 
 export interface UpdateTransactionData {

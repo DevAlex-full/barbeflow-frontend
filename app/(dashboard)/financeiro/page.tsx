@@ -11,6 +11,7 @@ export default function FinanceiroPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [summary, setSummary] = useState<any>(null);
+  const [txSummary, setTxSummary] = useState<any>(null);
   const [cashflow, setCashflow] = useState<any>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
@@ -21,13 +22,16 @@ export default function FinanceiroPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [summaryRes, cashflowRes, transactionsRes] = await Promise.all([
-        transactionsApi.getSummary(),
+      const [summaryRes, txSummaryRes, cashflowRes, transactionsRes] = await Promise.all([
+        transactionsApi.getSummary(),           // /finance/summary → saldo, totais, breakdown
+        fetch('/api/transactions/summary')       // /transactions/summary → contagem income/expense
+          .then(r => r.json()).catch(() => null),
         financeApi.getCashflow(undefined, 6),
         transactionsApi.list()
       ]);
 
       setSummary(summaryRes);
+      setTxSummary(txSummaryRes);
       setCashflow(cashflowRes);
       setRecentTransactions(transactionsRes.slice(0, 10));
     } catch (error) {
@@ -49,7 +53,11 @@ export default function FinanceiroPage() {
     );
   }
 
-  const isProfit = summary?.summary.netProfit >= 0;
+  const isProfit = summary?.summary?.netProfit >= 0;
+
+  // ✅ FIX: usa o campo correto de contagem
+  const incomeCount = txSummary?.summary?.incomeCount ?? summary?.transactions?.income ?? 0;
+  const expenseCount = txSummary?.summary?.expenseCount ?? summary?.transactions?.expense ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
@@ -84,8 +92,10 @@ export default function FinanceiroPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
           {/* Saldo Atual */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -95,7 +105,7 @@ export default function FinanceiroPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1">Saldo Atual</p>
             <p className="text-3xl font-bold text-gray-900">
-              R$ {summary?.summary.currentBalance?.toFixed(2) || '0,00'}
+              R$ {Number(summary?.summary?.currentBalance || 0).toFixed(2)}
             </p>
           </div>
 
@@ -108,10 +118,11 @@ export default function FinanceiroPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1">Receitas do Mês</p>
             <p className="text-3xl font-bold text-green-600">
-              R$ {summary?.summary.totalRevenue?.toFixed(2) || '0,00'}
+              R$ {Number(summary?.summary?.totalRevenue || 0).toFixed(2)}
             </p>
+            {/* ✅ FIX: usa incomeCount corretamente */}
             <p className="text-xs text-gray-500 mt-2">
-              {summary?.summary.incomeCount || 0} transações
+              {incomeCount} transaç{incomeCount === 1 ? 'ão' : 'ões'}
             </p>
           </div>
 
@@ -124,26 +135,30 @@ export default function FinanceiroPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1">Despesas do Mês</p>
             <p className="text-3xl font-bold text-red-600">
-              R$ {summary?.summary.totalExpenses?.toFixed(2) || '0,00'}
+              R$ {Number(summary?.summary?.totalExpenses || 0).toFixed(2)}
             </p>
+            {/* ✅ FIX: usa expenseCount corretamente */}
             <p className="text-xs text-gray-500 mt-2">
-              {summary?.summary.expenseCount || 0} transações
+              {expenseCount} transaç{expenseCount === 1 ? 'ão' : 'ões'}
             </p>
           </div>
 
           {/* Lucro Líquido */}
-          <div className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-6`}>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 bg-gradient-to-br ${isProfit ? 'from-purple-500 to-pink-500' : 'from-orange-500 to-red-500'} rounded-xl`}>
-                {isProfit ? <TrendingUp className="w-6 h-6 text-white" /> : <TrendingDown className="w-6 h-6 text-white" />}
+                {isProfit
+                  ? <TrendingUp className="w-6 h-6 text-white" />
+                  : <TrendingDown className="w-6 h-6 text-white" />
+                }
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
             <p className={`text-3xl font-bold ${isProfit ? 'text-purple-600' : 'text-orange-600'}`}>
-              R$ {summary?.summary.netProfit?.toFixed(2) || '0,00'}
+              R$ {Number(summary?.summary?.netProfit || 0).toFixed(2)}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              Margem: {summary?.summary.profitMargin || 0}%
+              Margem: {summary?.summary?.profitMargin || 0}%
             </p>
           </div>
         </div>
@@ -215,12 +230,12 @@ export default function FinanceiroPage() {
             📊 Fluxo de Caixa - Últimos 6 Meses
           </h3>
 
-          {cashflow && cashflow.cashflow.length > 0 ? (
+          {cashflow && cashflow.cashflow && cashflow.cashflow.length > 0 ? (
             <div className="space-y-4">
               {cashflow.cashflow.map((month: any, index: number) => {
                 const maxValue = Math.max(...cashflow.cashflow.map((m: any) => Math.max(m.revenue, m.expenses)));
-                const revenueWidth = (month.revenue / maxValue) * 100;
-                const expenseWidth = (month.expenses / maxValue) * 100;
+                const revenueWidth = maxValue > 0 ? (month.revenue / maxValue) * 100 : 0;
+                const expenseWidth = maxValue > 0 ? (month.expenses / maxValue) * 100 : 0;
 
                 return (
                   <div key={index}>
@@ -236,9 +251,11 @@ export default function FinanceiroPage() {
                               className="h-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-end px-2"
                               style={{ width: `${revenueWidth}%` }}
                             >
-                              <span className="text-xs font-bold text-white">
-                                R$ {month.revenue.toFixed(2)}
-                              </span>
+                              {revenueWidth > 20 && (
+                                <span className="text-xs font-bold text-white">
+                                  R$ {month.revenue.toFixed(2)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -249,9 +266,11 @@ export default function FinanceiroPage() {
                               className="h-full bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-end px-2"
                               style={{ width: `${expenseWidth}%` }}
                             >
-                              <span className="text-xs font-bold text-white">
-                                R$ {month.expenses.toFixed(2)}
-                              </span>
+                              {expenseWidth > 20 && (
+                                <span className="text-xs font-bold text-white">
+                                  R$ {month.expenses.toFixed(2)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -277,11 +296,13 @@ export default function FinanceiroPage() {
             <h3 className="text-xl font-bold text-gray-800 mb-6">
               📋 Despesas por Categoria (Mês Atual)
             </h3>
-            
+
             <div className="space-y-4">
               {Object.entries(summary.breakdown.expensesByCategory).map(([category, amount]: [string, any]) => {
-                const percentage = (amount / summary.summary.totalExpenses) * 100;
-                
+                const percentage = summary.summary.totalExpenses > 0
+                  ? (amount / summary.summary.totalExpenses) * 100
+                  : 0;
+
                 return (
                   <div key={category}>
                     <div className="flex items-center justify-between mb-2">
@@ -296,7 +317,7 @@ export default function FinanceiroPage() {
                       </span>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-600">{percentage.toFixed(1)}%</span>
-                        <span className="text-sm font-bold text-gray-900">R$ {amount.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-gray-900">R$ {Number(amount).toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -318,7 +339,7 @@ export default function FinanceiroPage() {
             <h3 className="text-xl font-bold text-gray-800">
               🕐 Transações Recentes
             </h3>
-            <Link 
+            <Link
               href="/financeiro/transacoes"
               className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
             >
@@ -335,11 +356,14 @@ export default function FinanceiroPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-lg ${
-                      transaction.type === 'income' 
-                        ? 'bg-green-100 text-green-600' 
+                      transaction.type === 'income'
+                        ? 'bg-green-100 text-green-600'
                         : 'bg-red-100 text-red-600'
                     }`}>
-                      {transaction.type === 'income' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                      {transaction.type === 'income'
+                        ? <ArrowUpRight className="w-5 h-5" />
+                        : <ArrowDownRight className="w-5 h-5" />
+                      }
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">{transaction.description}</p>
@@ -352,8 +376,9 @@ export default function FinanceiroPage() {
                     }`}>
                       {transaction.type === 'income' ? '+' : '-'}R$ {Number(transaction.amount).toFixed(2)}
                     </p>
+                    {/* ✅ FIX: data corrigida (bug UTC → +12h evita shift de dia) */}
                     <p className="text-xs text-gray-500">
-                      {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                      {new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </p>
                   </div>
                 </div>
