@@ -45,6 +45,7 @@ interface User {
 interface Barbershop {
   id: string;
   name: string;
+  slug: string | null;
   logo: string | null;
   plan: string;
   users: User[];
@@ -1541,7 +1542,7 @@ export default function ConfigurarLandingPage() {
                       <div className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-3">
                         <input
                           type="text"
-                          value={`${window.location.origin}/barbearia/${barbershopId}`}
+                          value={`${window.location.origin}/barbearia/${barbershop?.slug || barbershopId}`}
                           readOnly
                           className="w-full bg-transparent text-white text-sm outline-none"
                         />
@@ -1549,7 +1550,7 @@ export default function ConfigurarLandingPage() {
                       <div className="flex gap-3">
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/barbearia/${barbershopId}`);
+                            navigator.clipboard.writeText(`${window.location.origin}/barbearia/${barbershop?.slug || barbershopId}`);
                             alert('✅ Link copiado com sucesso!');
                           }}
                           className="flex-1 px-4 py-3 bg-white hover:bg-gray-100 text-purple-600 rounded-xl font-semibold transition shadow-lg"
@@ -1594,7 +1595,7 @@ export default function ConfigurarLandingPage() {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => window.open(`/barbearia/${barbershopId}`, '_blank')}
+                  onClick={() => window.open(`/barbearia/${barbershop?.slug || barbershopId}`, '_blank')}
                   className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl transition flex items-center gap-2 font-medium"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -1612,7 +1613,7 @@ export default function ConfigurarLandingPage() {
             {/* Iframe com Loading */}
             <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-2xl relative">
               <iframe
-                src={`/barbearia/${barbershopId}`}
+                src={`/barbearia/${barbershop?.slug || barbershopId}`}
                 className="w-full h-full"
                 title="Preview da Landing Page"
               />
