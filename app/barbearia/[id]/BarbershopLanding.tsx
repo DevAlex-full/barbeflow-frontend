@@ -72,6 +72,7 @@ export default function BarbershopLanding() {
   const { client, isAuthenticated, loading: authLoading } = useClientAuth();
 
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
+  const [realBarbershopId, setRealBarbershopId] = useState('');
   const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,6 +197,7 @@ export default function BarbershopLanding() {
       }
       const shopData = await response.json();
       setBarbershop(shopData);
+      setRealBarbershopId(shopData.id);
       setServices(shopData.services || []);
       setBarbers(shopData.users || []);
     } catch (error) {
@@ -246,7 +248,7 @@ export default function BarbershopLanding() {
       console.log('📅 Enviando data:', dateToSend);
 
       const response = await fetch(
-        `https://barberflow-back-end-19nv.onrender.com/api/public/barbershops/${barbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
+        `https://barberflow-back-end-19nv.onrender.com/api/public/barbershops/${realBarbershopId}/available-times?date=${dateToSend}&serviceId=${selectedService?.id}&barberId=${selectedBarber}`
       );
 
       if (response.ok) {
@@ -317,7 +319,7 @@ export default function BarbershopLanding() {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          barbershopId: barbershopId,
+          barbershopId: realBarbershopId,
           barberId: selectedBarber,
           serviceId: selectedService.id,
           date: selectedTime
