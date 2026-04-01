@@ -129,7 +129,12 @@ export default function ConfigurarLandingPage() {
 
       if (configResponse.ok) {
         const data = await configResponse.json();
-        setConfig({ ...config, ...data });
+        setConfig(prev => ({
+          ...prev,
+          ...data,
+          businessHours: data.businessHours || prev.businessHours,
+          galleryImages: data.galleryImages || prev.galleryImages,
+        }));
       }
 
       const barbershopResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop', {
@@ -878,7 +883,7 @@ export default function ConfigurarLandingPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {Object.entries(config.businessHours).map(([day, hours]) => (
+                    {Object.entries(config.businessHours || {}).map(([day, hours]) => (
                       <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
                         <label className="w-full sm:w-48 text-sm font-semibold text-gray-700">
                           {dayNames[day]}
