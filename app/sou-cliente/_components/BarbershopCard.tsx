@@ -8,6 +8,7 @@ interface BarbershopCardProps {
   barbershop: {
     id: string;
     name: string;
+    slug?: string | null;
     phone: string;
     address: string;
     city: string;
@@ -32,10 +33,10 @@ export default function BarbershopCard({ barbershop, locationEnabled }: Barbersh
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Pega favoritos atuais do localStorage
     const favorites = JSON.parse(localStorage.getItem('@barberFlow:favorites') || '[]');
-    
+
     if (isFavorite) {
       // Remove dos favoritos
       const newFavorites = favorites.filter((fav: any) => fav.id !== barbershop.id);
@@ -69,7 +70,7 @@ export default function BarbershopCard({ barbershop, locationEnabled }: Barbersh
 
   return (
     <Link
-      href={`/barbearia/${barbershop.id}`}
+      href={`/barbearia/${barbershop.slug || barbershop.id}`}
       className="block group"
     >
       <div className="bg-[#0d1117] rounded-xl p-3 hover:bg-[#161b22] transition-all cursor-pointer border border-gray-800/50 hover:border-gray-700 relative">
@@ -125,20 +126,18 @@ export default function BarbershopCard({ barbershop, locationEnabled }: Barbersh
             {/* Botão de Favoritar */}
             <button
               onClick={handleFavoriteClick}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                isFavorite 
-                  ? 'bg-red-500/20 hover:bg-red-500/30' 
-                  : 'bg-gray-800/30 hover:bg-gray-700/50'
-              }`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${isFavorite
+                ? 'bg-red-500/20 hover:bg-red-500/30'
+                : 'bg-gray-800/30 hover:bg-gray-700/50'
+                }`}
               title={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
             >
-              <Heart 
-                size={14} 
-                className={`transition-all ${
-                  isFavorite 
-                    ? 'fill-red-500 text-red-500' 
-                    : 'text-gray-500'
-                }`}
+              <Heart
+                size={14}
+                className={`transition-all ${isFavorite
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-gray-500'
+                  }`}
               />
             </button>
 
