@@ -54,67 +54,90 @@ export function KPIsPanel({ data }: KPIsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-      {kpis.map((kpi, index) => {
-        const Icon = kpi.icon;
-        const isPositive = kpi.change !== undefined && kpi.change > 0;
-        const isNegative = kpi.change !== undefined && kpi.change < 0;
+    <>
+      {/* Mobile: scroll horizontal */}
+      <div className="flex gap-3 overflow-x-auto pb-2 md:hidden">
+        {kpis.map((kpi, index) => {
+          const Icon = kpi.icon;
+          const isPositive = kpi.change !== undefined && kpi.change > 0;
+          const isNegative = kpi.change !== undefined && kpi.change < 0;
 
-        return (
-          <div
-            key={index}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow"
-          >
-            {/* Ícone */}
-            <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${kpi.color} mb-4`}>
-              <Icon className="w-6 h-6 text-white" />
-            </div>
-
-            {/* Label */}
-            <p className="text-sm font-medium text-gray-600 mb-2">
-              {kpi.label}
-            </p>
-
-            {/* Valor */}
-            <p className="text-2xl font-bold text-gray-900 mb-1">
-              {kpi.value}
-            </p>
-
-            {/* Subtitle ou Change */}
-            {kpi.subtitle && (
-              <p className="text-xs text-gray-500">
-                {kpi.subtitle}
-              </p>
-            )}
-
-            {kpi.change !== undefined && (
-              <div className="flex items-center gap-1 mt-2">
-                {isPositive && (
-                  <>
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-semibold text-green-600">
-                      +{kpi.change.toFixed(1)}%
-                    </span>
-                  </>
-                )}
-                {isNegative && (
-                  <>
-                    <TrendingDown className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-semibold text-red-600">
-                      {kpi.change.toFixed(1)}%
-                    </span>
-                  </>
-                )}
-                {!isPositive && !isNegative && (
-                  <span className="text-sm text-gray-500">
-                    Estável
-                  </span>
-                )}
+          return (
+            <div
+              key={index}
+              className="flex-shrink-0 w-44 bg-white rounded-2xl shadow-lg border border-gray-100 p-4"
+            >
+              <div className={`inline-flex p-2.5 rounded-xl bg-gradient-to-br ${kpi.color} mb-3`}>
+                <Icon className="w-5 h-5 text-white" />
               </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+              <p className="text-xs font-medium text-gray-600 mb-1 leading-tight">{kpi.label}</p>
+              <p className="text-base font-bold text-gray-900 mb-0.5 break-all">{kpi.value}</p>
+              {kpi.subtitle && <p className="text-xs text-gray-500">{kpi.subtitle}</p>}
+              {kpi.change !== undefined && (
+                <div className="flex items-center gap-1 mt-1">
+                  {isPositive && (
+                    <>
+                      <TrendingUp className="w-3 h-3 text-green-600" />
+                      <span className="text-xs font-semibold text-green-600">+{kpi.change.toFixed(1)}%</span>
+                    </>
+                  )}
+                  {isNegative && (
+                    <>
+                      <TrendingDown className="w-3 h-3 text-red-600" />
+                      <span className="text-xs font-semibold text-red-600">{kpi.change.toFixed(1)}%</span>
+                    </>
+                  )}
+                  {!isPositive && !isNegative && (
+                    <span className="text-xs text-gray-500">Estável</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tablet/Desktop: grid */}
+      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {kpis.map((kpi, index) => {
+          const Icon = kpi.icon;
+          const isPositive = kpi.change !== undefined && kpi.change > 0;
+          const isNegative = kpi.change !== undefined && kpi.change < 0;
+
+          return (
+            <div
+              key={index}
+              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow"
+            >
+              <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${kpi.color} mb-4`}>
+                <Icon className="w-6 h-6 text-white" />
+              </div>
+              <p className="text-sm font-medium text-gray-600 mb-2">{kpi.label}</p>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{kpi.value}</p>
+              {kpi.subtitle && <p className="text-xs text-gray-500">{kpi.subtitle}</p>}
+              {kpi.change !== undefined && (
+                <div className="flex items-center gap-1 mt-2">
+                  {isPositive && (
+                    <>
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-semibold text-green-600">+{kpi.change.toFixed(1)}%</span>
+                    </>
+                  )}
+                  {isNegative && (
+                    <>
+                      <TrendingDown className="w-4 h-4 text-red-600" />
+                      <span className="text-sm font-semibold text-red-600">{kpi.change.toFixed(1)}%</span>
+                    </>
+                  )}
+                  {!isPositive && !isNegative && (
+                    <span className="text-sm text-gray-500">Estável</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

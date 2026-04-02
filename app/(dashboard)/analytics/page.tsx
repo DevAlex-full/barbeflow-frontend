@@ -40,116 +40,93 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-16 h-16 text-purple-600 animate-spin" />
-          <p className="text-lg font-semibold text-gray-700">Carregando analytics...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <Loader2 className="w-12 h-12 text-purple-600 animate-spin" />
+        <p className="text-sm font-semibold text-gray-600">Carregando analytics...</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center">
-        <div className="text-center">
-          <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">
-            Sem dados disponíveis
-          </h3>
-          <p className="text-gray-500">
-            Nenhum dado de analytics encontrado
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-gray-800 mb-2">Sem dados disponíveis</h3>
+        <p className="text-sm text-gray-500">Nenhum dado de analytics encontrado</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-40 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Analytics Avançados
-                </h1>
-                <p className="text-gray-600 text-sm mt-1">
-                  Insights inteligentes e análises em tempo real
-                </p>
-              </div>
-            </div>
+    <div className="space-y-6">
 
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-200 text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition disabled:opacity-50"
-            >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-              Atualizar
-            </button>
+      {/* Header — igual ao padrão das outras páginas do dashboard */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 md:p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg">
+            <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900">Analytics Avançados</h1>
+            <p className="text-xs md:text-sm text-gray-600 mt-0.5">
+              Insights inteligentes e análises em tempo real
+            </p>
           </div>
         </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-white border-2 border-purple-200 text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition disabled:opacity-50 text-sm"
+        >
+          <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Atualizar</span>
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* KPIs */}
-        <KPIsPanel data={data.kpis} />
+      {/* KPIs */}
+      <KPIsPanel data={data.kpis} />
 
-        {/* Insights */}
-        {data.insights && data.insights.length > 0 && (
-          <InsightsPanel insights={data.insights} />
-        )}
+      {/* Insights */}
+      {data.insights && data.insights.length > 0 && (
+        <InsightsPanel insights={data.insights} />
+      )}
 
-        {/* Grid Principal */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Mapa de Calor */}
-          <div className="lg:col-span-2">
-            <HeatmapChart data={data.heatmap} />
-          </div>
+      {/* Mapa de Calor — largura total */}
+      <HeatmapChart data={data.heatmap} />
 
-          {/* Performance por Barbeiro */}
-          <div className="lg:col-span-2">
-            <BarberPerformanceChart data={data.barberPerformance} />
-          </div>
+      {/* Performance por Barbeiro — largura total */}
+      <BarberPerformanceChart data={data.barberPerformance} />
 
-          {/* Análise de Clientes */}
-          <CustomersAnalysis data={data.customers} />
+      {/* Análise de Clientes + Funil — lado a lado no desktop, empilhados no mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CustomersAnalysis data={data.customers} />
+        <ConversionFunnel data={data.conversionFunnel} />
+      </div>
 
-          {/* Funil de Conversão */}
-          <ConversionFunnel data={data.conversionFunnel} />
-        </div>
-
-        {/* Footer Info */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-800">Analytics Inteligentes</h4>
-                <p className="text-sm text-gray-600">
-                  Dados atualizados automaticamente a cada 30 dias
-                </p>
-              </div>
+      {/* Footer */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 md:p-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-lg md:text-2xl">🤖</span>
             </div>
-
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Última atualização</p>
-              <p className="text-sm font-semibold text-gray-800">
-                {new Date().toLocaleString('pt-BR')}
+            <div>
+              <h4 className="font-bold text-gray-800 text-sm md:text-base">Analytics Inteligentes</h4>
+              <p className="text-xs md:text-sm text-gray-600">
+                Dados atualizados automaticamente com base nos seus registros
               </p>
             </div>
           </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">Última atualização</p>
+            <p className="text-xs md:text-sm font-semibold text-gray-800">
+              {new Date().toLocaleString('pt-BR')}
+            </p>
+          </div>
         </div>
       </div>
+
     </div>
   );
 }
