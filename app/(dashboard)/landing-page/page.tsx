@@ -51,6 +51,65 @@ interface Barbershop {
   users: User[];
 }
 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api').replace(/\/$/, '');
+const FILE_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
+
+const IMAGE_RULES = {
+  logo: { maxSizeMb: 2, minWidth: 200, minHeight: 200 },
+  avatar: { maxSizeMb: 1, minWidth: 200, minHeight: 200 },
+  hero: { maxSizeMb: 3, minWidth: 1200, minHeight: 600 },
+  gallery: { maxSizeMb: 3, minWidth: 600, minHeight: 600 },
+};
+
+function toAbsoluteImageUrl(url?: string | null) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${FILE_BASE_URL}${url}`;
+}
+
+function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+
+    image.onload = () => {
+      resolve({ width: image.width, height: image.height });
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.onerror = () => {
+      reject(new Error('Não foi possível validar a imagem.'));
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+async function validateImageFile(
+  file: File,
+  type: keyof typeof IMAGE_RULES
+) {
+  const rules = IMAGE_RULES[type];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Formato inválido. Envie JPG, PNG, WEBP ou GIF.');
+  }
+
+  if (file.size > rules.maxSizeMb * 1024 * 1024) {
+    throw new Error(`Arquivo muito grande. Máximo permitido: ${rules.maxSizeMb}MB.`);
+  }
+
+  const dimensions = await getImageDimensions(file);
+
+  if (dimensions.width < rules.minWidth || dimensions.height < rules.minHeight) {
+    throw new Error(
+      `Imagem muito pequena. Mínimo recomendado: ${rules.minWidth}x${rules.minHeight}px.`
+    );
+  }
+}
+
 export default function ConfigurarLandingPage() {
   const [activeTab, setActiveTab] = useState('hero');
   const [saving, setSaving] = useState(false);
@@ -124,29 +183,29 @@ export default function ConfigurarLandingPage() {
         setBarbershopId(user.barbershopId);
       }
 
-      const configResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop/config', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const configResponse = await fetch(`${API_BASE_URL}/barbershop/config`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (configResponse.ok) {
         const data = await configResponse.json();
-        setConfig(prev => ({
+        setConfig((prev) => ({
           ...prev,
           ...data,
+          heroImage: data.heroImage || '',
+          galleryImages: Array.isArray(data.galleryImages) ? data.galleryImages : prev.galleryImages,
           businessHours: data.businessHours || prev.businessHours,
-          galleryImages: data.galleryImages || prev.galleryImages,
         }));
       }
 
-      const barbershopResponse = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const barbershopResponse = await fetch(`${API_BASE_URL}/barbershop`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (barbershopResponse.ok) {
         const data = await barbershopResponse.json();
         setBarbershop(data);
       }
-
     } catch (error) {
       console.error('❌ Erro ao carregar:', error);
     } finally {
@@ -160,24 +219,12 @@ export default function ConfigurarLandingPage() {
       const token = localStorage.getItem('@barberFlow:token');
       if (!token) return;
 
-      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Usuários carregados:', data); // Debug
-
-        // ✅ ADICIONE ISTO:
-        console.log('═══════════════════════════════════');
-        console.log('📊 Total usuários:', data.length);
-        console.log('👥 Usuários:', data);
-        console.log('✅ Ativos:', data.filter((u: any) => u.active).length);
-        console.log('═══════════════════════════════════');
-
-        // ✅ MOSTRA TODOS (admin + barber + qualquer role)
-        // Não filtra por role, não filtra por active
-        // Backend já retorna apenas usuários da barbearia
         setUsers(data);
       }
     } catch (error) {
@@ -219,8 +266,8 @@ export default function ConfigurarLandingPage() {
       }
 
       const url = editingUser
-        ? `https://barberflow-back-end-19nv.onrender.com/api/users/${editingUser.id}`
-        : 'https://barberflow-back-end-19nv.onrender.com/api/users';
+        ? `${API_BASE_URL}/users/${editingUser.id}`
+        : `${API_BASE_URL}/users`;
 
       const method = editingUser ? 'PUT' : 'POST';
 
@@ -232,9 +279,9 @@ export default function ConfigurarLandingPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -250,7 +297,7 @@ export default function ConfigurarLandingPage() {
           alert(`❌ ${data.error || 'Erro ao salvar'}`);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       alert('❌ Erro ao salvar usuário');
     }
   };
@@ -258,9 +305,9 @@ export default function ConfigurarLandingPage() {
   const handleToggleUser = async (id: string) => {
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/users/${id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/users/${id}/toggle`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
@@ -279,9 +326,9 @@ export default function ConfigurarLandingPage() {
 
     try {
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/users/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
@@ -299,6 +346,7 @@ export default function ConfigurarLandingPage() {
   const handleSave = async () => {
     setSaving(true);
     setSuccessMessage('');
+
     try {
       const token = localStorage.getItem('@barberFlow:token');
 
@@ -307,13 +355,13 @@ export default function ConfigurarLandingPage() {
         return;
       }
 
-      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/barbershop/config', {
+      const response = await fetch(`${API_BASE_URL}/barbershop/config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(config),
       });
 
       const data = await response.json();
@@ -336,113 +384,147 @@ export default function ConfigurarLandingPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('logo', file);
-
     setUploading(true);
+
     try {
+      await validateImageFile(file, 'logo');
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/upload/barbershop-logo', {
+      const response = await fetch(`${API_BASE_URL}/upload/barbershop-logo`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
 
-      if (response.ok) {
-        const { logoUrl } = await response.json();
-        setBarbershop(prev => prev ? { ...prev, logo: logoUrl } : null);
-        alert('✅ Logo atualizado com sucesso!');
-      } else {
-        alert('❌ Erro ao enviar logo');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar logo');
       }
-    } catch (error) {
-      alert('❌ Erro ao enviar logo');
+
+      setBarbershop((prev) =>
+        prev ? { ...prev, logo: data.logoUrl } : prev
+      );
+
+      alert('✅ Logo atualizada com sucesso!');
+    } catch (error: any) {
+      alert(`❌ ${error.message || 'Erro ao enviar logo'}`);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, userId: string) => {
+  const handleAvatarUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    userId: string
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('avatar', file);
 
     setUploadingAvatar(userId);
+
     try {
+      await validateImageFile(file, 'avatar');
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
       const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch(`https://barberflow-back-end-19nv.onrender.com/api/upload/user-avatar/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/upload/user-avatar/${userId}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
 
-      if (response.ok) {
-        const { avatarUrl } = await response.json();
-        setUsers(prev => prev.map(u =>
-          u.id === userId ? { ...u, avatar: avatarUrl } : u
-        ));
-        alert('✅ Avatar atualizado com sucesso!');
-      } else {
-        const error = await response.json();
-        alert(`❌ Erro: ${error.error || 'Erro ao enviar avatar'}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar avatar');
       }
-    } catch (error) {
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, avatar: data.avatarUrl } : u))
+      );
+
+      alert('✅ Avatar atualizado com sucesso!');
+    } catch (error: any) {
       console.error('❌ Erro:', error);
-      alert('❌ Erro ao enviar avatar');
+      alert(`❌ ${error.message || 'Erro ao enviar avatar'}`);
     } finally {
       setUploadingAvatar(null);
+      e.target.value = '';
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery') => {
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'hero' | 'gallery'
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB');
-      return;
+    setUploading(true);
+
+    try {
+      await validateImageFile(file, type);
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('uploadType', type);
+
+      const token = localStorage.getItem('@barberFlow:token');
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar imagem');
+      }
+
+      if (type === 'hero') {
+        setConfig((prev) => ({ ...prev, heroImage: data.url }));
+      } else {
+        setConfig((prev) => ({ ...prev, galleryImages: [...prev.galleryImages, data.url] }));
+      }
+
+      alert('✅ Imagem enviada com sucesso!');
+    } catch (error: any) {
+      alert(`❌ ${error.message || 'Erro ao enviar imagem'}`);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
+  };
+
+  const handleHeroUploadFromZone = async (file: File) => {
+    await validateImageFile(file, 'hero');
 
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('uploadType', 'hero');
 
-    setUploading(true);
-    try {
-      const token = localStorage.getItem('@barberFlow:token');
-      const response = await fetch('https://barberflow-back-end-19nv.onrender.com/api/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+    const token = localStorage.getItem('@barberFlow:token');
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
 
-      if (response.ok) {
-        const { url } = await response.json();
-        if (type === 'hero') {
-          setConfig({ ...config, heroImage: url });
-        } else {
-          setConfig({ ...config, galleryImages: [...config.galleryImages, url] });
-        }
-        alert('✅ Imagem enviada com sucesso!');
-      } else {
-        alert('❌ Erro ao enviar imagem');
-      }
-    } catch (error) {
-      alert('❌ Erro ao enviar imagem');
-    } finally {
-      setUploading(false);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Erro ao enviar imagem do banner');
     }
+
+    setConfig((prev) => ({ ...prev, heroImage: data.url }));
   };
 
   const removeGalleryImage = (index: number) => {
@@ -682,7 +764,11 @@ export default function ConfigurarLandingPage() {
                     <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200">
                       {config.heroImage ? (
                         <div className="relative group">
-                          <img src={config.heroImage} alt="Hero" className="w-full h-64 object-cover rounded-xl shadow-lg" />
+                          <img
+                            src={toAbsoluteImageUrl(config.heroImage)}
+                            alt="Hero"
+                            className="w-full h-64 object-cover rounded-xl shadow-lg"
+                          />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                             <button
                               onClick={() => setConfig({ ...config, heroImage: '' })}
@@ -693,29 +779,15 @@ export default function ConfigurarLandingPage() {
                           </div>
                         </div>
                       ) : (
-                        <label className="cursor-pointer block">
-                          <ImageUploadZone
-                            onUpload={async (file) => {
-                              const formData = new FormData();
-                              formData.append('image', file);
-
-                              const token = localStorage.getItem('@barberFlow:token');
-                              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/upload`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}` },
-                                body: formData
-                              });
-
-                              if (response.ok) {
-                                const { url } = await response.json();
-                                setConfig({ ...config, heroImage: url });
-                              }
-                            }}
-                            currentImage={config.heroImage}
-                            label="Imagem de Fundo"
-                            description="PNG, JPG até 5MB • Recomendado: 1920x1080px"
-                          />
-                        </label>
+                        <ImageUploadZone
+                          onUpload={handleHeroUploadFromZone}
+                          currentImage={config.heroImage ? toAbsoluteImageUrl(config.heroImage) : ''}
+                          label="Imagem de Fundo"
+                          description="PNG, JPG, WEBP ou GIF até 3MB • Mínimo: 1200x600px • Recomendado: 1600x900px"
+                          maxSize={3}
+                          minWidth={1200}
+                          minHeight={600}
+                        />
                       )}
                     </div>
                   </div>
@@ -832,7 +904,11 @@ export default function ConfigurarLandingPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {config.galleryImages.map((img, index) => (
                       <div key={index} className="relative group">
-                        <img src={img} alt={`Gallery ${index + 1}`} className="w-full h-40 object-cover rounded-xl shadow-md" />
+                        <img
+                          src={toAbsoluteImageUrl(img)}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-40 object-cover rounded-xl shadow-md"
+                        />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                           <button
                             onClick={() => removeGalleryImage(index)}
@@ -852,7 +928,7 @@ export default function ConfigurarLandingPage() {
                           <>
                             <Plus className="w-10 h-10 text-gray-400 mb-2" />
                             <span className="text-sm font-medium text-gray-600">Adicionar Foto</span>
-                            <span className="text-xs text-gray-400 mt-1">Até 5MB</span>
+                            <span className="text-xs text-gray-400 mt-1">Até 3MB • mínimo 600x600px</span>
                           </>
                         )}
                         <input
@@ -1046,7 +1122,7 @@ export default function ConfigurarLandingPage() {
                         <div className="relative group">
                           <div className="flex justify-center mb-4">
                             <img
-                              src={barbershop.logo}
+                              src={toAbsoluteImageUrl(barbershop.logo)}
                               alt="Logo"
                               className="h-32 w-32 object-contain rounded-xl shadow-lg border-2 border-gray-200"
                             />
@@ -1075,7 +1151,7 @@ export default function ConfigurarLandingPage() {
                             <>
                               <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-400" />
                               <p className="text-gray-700 font-medium mb-2">Clique para fazer upload do logo</p>
-                              <p className="text-gray-500 text-sm">PNG, JPG até 5MB • Recomendado: 512x512px</p>
+                              <p className="text-gray-500 text-sm">PNG, JPG, WEBP ou GIF até 2MB • Mínimo: 200x200px • Recomendado: 512x512px</p>
                             </>
                           )}
                           <input
@@ -1333,7 +1409,7 @@ export default function ConfigurarLandingPage() {
                               <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-gray-300 bg-gray-100">
                                 {user.avatar ? (
                                   <img
-                                    src={user.avatar}
+                                    src={toAbsoluteImageUrl(user.avatar)}
                                     alt={user.name}
                                     className="w-full h-full object-cover"
                                   />
