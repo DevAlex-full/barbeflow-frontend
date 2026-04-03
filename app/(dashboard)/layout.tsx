@@ -23,9 +23,9 @@ import api from '@/lib/api';
 import { cn } from '@/lib/utils/cn';
 import { FileText } from 'lucide-react';
 import { BarChart3 } from 'lucide-react';
-import { useTheme } from '@/lib/hooks/useTheme';
+// ✅ REMOVIDO: import { useTheme } from '@/lib/hooks/useTheme'; — importado mas nunca usado
 import { Tutorial } from '@/components/tutorial/Tutorial';
-import { TutorialProvider } from '@/contexts/TutorialContext'; // ✅ NOVO
+import { TutorialProvider } from '@/contexts/TutorialContext';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, barbershop, loading, signOut } = useAuth();
