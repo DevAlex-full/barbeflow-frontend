@@ -16,7 +16,9 @@ import {
   Globe,
   MapPin,
   CreditCard,
-  DollarSign
+  DollarSign,
+  Package,
+  Gift
 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import api from '@/lib/api';
@@ -82,7 +84,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/servicos', icon: Scissors, label: 'Serviços' },
     { href: '/localizacao', icon: MapPin, label: 'Localização' },
     { href: '/landing-page', icon: Globe, label: 'Landing Page' },
-    { href: '/financeiro', icon: DollarSign, label: 'Financeiro' },
+    { href: '/financeiro',  icon: DollarSign,  label: 'Financeiro'  },
+{ href: '/estoque',     icon: Package,     label: 'Estoque'     },
+{ href: '/pacotes',     icon: Gift,        label: 'Pacotes'     },
     { href: '/relatorios', icon: FileText, label: 'Relatórios' },
     { href: '/analytics', icon: BarChart3, label: 'Analytics' },
     { href: '/planos', icon: CreditCard, label: 'Planos' },
