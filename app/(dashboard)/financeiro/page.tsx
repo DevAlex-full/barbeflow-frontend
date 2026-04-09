@@ -1,37 +1,70 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, ArrowUpRight, ArrowDownRight, Plus, Loader2 } from 'lucide-react';
+import {
+  DollarSign, TrendingUp, TrendingDown, Calendar,
+  ArrowUpRight, ArrowDownRight, Plus, Loader2, ChevronLeft, ChevronRight
+} from 'lucide-react';
 import Link from 'next/link';
-import { transactionsApi } from '@/lib/api/transactions';
 import { financeApi } from '@/lib/api/finance';
+import { transactionsApi } from '@/lib/api/transactions';
 import { AddTransactionModal } from '@/components/financeiro/AddTransactionModal';
 
+const BR = (n: number) => `R$ ${Number(n || 0).toFixed(2).replace('.', ',')}`;
+
+const MONTHS = [
+  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  salary:     '💼 Salários',
+  commission: '💰 Comissões',
+  rent:       '🏢 Aluguel',
+  utilities:  '💡 Contas',
+  supplies:   '📦 Materiais',
+  service:    '✂️ Serviços',
+  product:    '🛒 Produtos',
+  other:      '📌 Outros',
+};
+
 export default function FinanceiroPage() {
-  const [loading, setLoading] = useState(true);
+  const now = new Date();
+
+  // ✅ Seletor de período
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
+
+  const [loading,  setLoading]  = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
-  const [txSummary, setTxSummary] = useState<any>(null);
+  const [summary,  setSummary]  = useState<any>(null);
   const [cashflow, setCashflow] = useState<any>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Gera startDate/endDate para o período selecionado (UTC seguro)
+  const periodDates = () => {
+    const start = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+    const end   = new Date(Date.UTC(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999));
+    return {
+      startDate: start.toISOString(),
+      endDate:   end.toISOString()
+    };
+  };
+
+  useEffect(() => { loadData(); }, [selectedMonth, selectedYear]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [summaryRes, txSummaryRes, cashflowRes, transactionsRes] = await Promise.all([
-        transactionsApi.getSummary(),           // /finance/summary → saldo, totais, breakdown
-        fetch('/api/transactions/summary')       // /transactions/summary → contagem income/expense
-          .then(r => r.json()).catch(() => null),
+      const { startDate, endDate } = periodDates();
+
+      const [summaryRes, cashflowRes, transactionsRes] = await Promise.all([
+        financeApi.getSummary(startDate, endDate),
         financeApi.getCashflow(undefined, 6),
         transactionsApi.list()
       ]);
 
       setSummary(summaryRes);
-      setTxSummary(txSummaryRes);
       setCashflow(cashflowRes);
       setRecentTransactions(transactionsRes.slice(0, 10));
     } catch (error) {
@@ -41,361 +74,306 @@ export default function FinanceiroPage() {
     }
   };
 
-  const handleTransactionAdded = () => {
-    loadData();
+  const prevMonth = () => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1); }
+    else setSelectedMonth(m => m - 1);
   };
+
+  const nextMonth = () => {
+    const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+    if (isCurrentMonth) return;
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(y => y + 1); }
+    else setSelectedMonth(m => m + 1);
+  };
+
+  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center">
-        <Loader2 className="w-16 h-16 text-purple-600 animate-spin" />
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
       </div>
     );
   }
 
-  const isProfit = summary?.summary?.netProfit >= 0;
+  const s        = summary?.summary || {};
+  const isProfit = (s.netProfit || 0) >= 0;
 
-  // ✅ FIX: usa o campo correto de contagem
-  const incomeCount = txSummary?.summary?.incomeCount ?? summary?.transactions?.income ?? 0;
-  const expenseCount = txSummary?.summary?.expenseCount ?? summary?.transactions?.expense ?? 0;
+  const incomeCount = summary?.transactions?.income ?? 0;
+  const expenseCount = summary?.transactions?.expense ?? 0;
+  const aptCount = summary?.transactions?.appointments ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <>
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-40 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl shadow-lg">
-                <DollarSign className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  Financeiro
-                </h1>
-                <p className="text-gray-600 text-sm mt-1">
-                  Controle completo das suas finanças
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              Nova Transação
-            </button>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-green-600 rounded-xl shadow-md shadow-emerald-200 dark:shadow-emerald-900/30">
+            <DollarSign className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Financeiro</h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Controle completo das suas finanças</p>
           </div>
         </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Nova Transação
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* ✅ Seletor de período */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mb-5 flex items-center justify-between">
+        <button
+          onClick={prevMonth}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition text-gray-500"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
 
-        {/* KPIs Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-          {/* Saldo Atual */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
-                <DollarSign className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Saldo Atual</p>
-            <p className="text-3xl font-bold text-gray-900">
-              R$ {Number(summary?.summary?.currentBalance || 0).toFixed(2)}
-            </p>
-          </div>
-
-          {/* Receitas */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-                <ArrowUpRight className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Receitas do Mês</p>
-            <p className="text-3xl font-bold text-green-600">
-              R$ {Number(summary?.summary?.totalRevenue || 0).toFixed(2)}
-            </p>
-            {/* ✅ FIX: usa incomeCount corretamente */}
-            <p className="text-xs text-gray-500 mt-2">
-              {incomeCount} transaç{incomeCount === 1 ? 'ão' : 'ões'}
-            </p>
-          </div>
-
-          {/* Despesas */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl">
-                <ArrowDownRight className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Despesas do Mês</p>
-            <p className="text-3xl font-bold text-red-600">
-              R$ {Number(summary?.summary?.totalExpenses || 0).toFixed(2)}
-            </p>
-            {/* ✅ FIX: usa expenseCount corretamente */}
-            <p className="text-xs text-gray-500 mt-2">
-              {expenseCount} transaç{expenseCount === 1 ? 'ão' : 'ões'}
-            </p>
-          </div>
-
-          {/* Lucro Líquido */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 bg-gradient-to-br ${isProfit ? 'from-purple-500 to-pink-500' : 'from-orange-500 to-red-500'} rounded-xl`}>
-                {isProfit
-                  ? <TrendingUp className="w-6 h-6 text-white" />
-                  : <TrendingDown className="w-6 h-6 text-white" />
-                }
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-            <p className={`text-3xl font-bold ${isProfit ? 'text-purple-600' : 'text-orange-600'}`}>
-              R$ {Number(summary?.summary?.netProfit || 0).toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Margem: {summary?.summary?.profitMargin || 0}%
-            </p>
-          </div>
-        </div>
-
-        {/* Menu Rápido */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/financeiro/transacoes" className="group">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all hover:scale-105">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl group-hover:scale-110 transition">
-                  <Calendar className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Transações</h3>
-                  <p className="text-sm text-gray-500">Ver todas</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/financeiro/comissoes" className="group">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all hover:scale-105">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl group-hover:scale-110 transition">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Comissões</h3>
-                  <p className="text-sm text-gray-500">Gestão de comissões</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/financeiro/metas" className="group">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all hover:scale-105">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl group-hover:scale-110 transition">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Metas</h3>
-                  <p className="text-sm text-gray-500">Acompanhar objetivos</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/financeiro/relatorios" className="group">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all hover:scale-105">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-xl group-hover:scale-110 transition">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Relatórios</h3>
-                  <p className="text-sm text-gray-500">DRE, Fluxo, Balanço</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Gráfico de Fluxo de Caixa */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">
-            📊 Fluxo de Caixa - Últimos 6 Meses
-          </h3>
-
-          {cashflow && cashflow.cashflow && cashflow.cashflow.length > 0 ? (
-            <div className="space-y-4">
-              {cashflow.cashflow.map((month: any, index: number) => {
-                const maxValue = Math.max(...cashflow.cashflow.map((m: any) => Math.max(m.revenue, m.expenses)));
-                const revenueWidth = maxValue > 0 ? (month.revenue / maxValue) * 100 : 0;
-                const expenseWidth = maxValue > 0 ? (month.expenses / maxValue) * 100 : 0;
-
-                return (
-                  <div key={index}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-700 w-24">
-                        {month.month}
-                      </span>
-                      <div className="flex-1 flex items-center gap-4">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500 mb-1">Receitas</div>
-                          <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-end px-2"
-                              style={{ width: `${revenueWidth}%` }}
-                            >
-                              {revenueWidth > 20 && (
-                                <span className="text-xs font-bold text-white">
-                                  R$ {month.revenue.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500 mb-1">Despesas</div>
-                          <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-end px-2"
-                              style={{ width: `${expenseWidth}%` }}
-                            >
-                              {expenseWidth > 20 && (
-                                <span className="text-xs font-bold text-white">
-                                  R$ {month.expenses.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="w-32 text-right">
-                        <span className={`text-sm font-bold ${month.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {month.netFlow >= 0 ? '+' : ''}R$ {month.netFlow.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 py-8">Nenhum dado disponível</p>
+        <div className="text-center">
+          <p className="text-base font-bold text-gray-900 dark:text-white">
+            {MONTHS[selectedMonth]} {selectedYear}
+          </p>
+          {isCurrentMonth && (
+            <span className="text-xs text-emerald-600 font-medium">Mês atual</span>
           )}
         </div>
 
-        {/* Despesas por Categoria */}
-        {summary?.breakdown?.expensesByCategory && Object.keys(summary.breakdown.expensesByCategory).length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-6">
-              📋 Despesas por Categoria (Mês Atual)
-            </h3>
+        <button
+          onClick={nextMonth}
+          disabled={isCurrentMonth}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
 
-            <div className="space-y-4">
-              {Object.entries(summary.breakdown.expensesByCategory).map(([category, amount]: [string, any]) => {
-                const percentage = summary.summary.totalExpenses > 0
-                  ? (amount / summary.summary.totalExpenses) * 100
-                  : 0;
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        {/* Saldo Acumulado */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <DollarSign className="w-4 h-4 text-blue-600" />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Saldo Atual</p>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{BR(s.currentBalance)}</p>
+          <p className="text-xs text-gray-400 mt-1">Acumulado até o período</p>
+        </div>
 
-                return (
-                  <div key={category}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-700 capitalize">
-                        {category === 'salary' && '💼 Salários'}
-                        {category === 'commission' && '💰 Comissões'}
-                        {category === 'rent' && '🏢 Aluguel'}
-                        {category === 'utilities' && '💡 Contas'}
-                        {category === 'supplies' && '📦 Materiais'}
-                        {category === 'other' && '📌 Outros'}
-                        {!['salary', 'commission', 'rent', 'utilities', 'supplies', 'other'].includes(category) && `📌 ${category}`}
-                      </span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-600">{percentage.toFixed(1)}%</span>
-                        <span className="text-sm font-bold text-gray-900">R$ {Number(amount).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Receitas */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+              <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Receitas</p>
+          </div>
+          <p className="text-2xl font-bold text-emerald-600">{BR(s.totalRevenue)}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {aptCount} agend. + {incomeCount} transações
+          </p>
+        </div>
+
+        {/* Despesas */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <ArrowDownRight className="w-4 h-4 text-red-500" />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Despesas</p>
+          </div>
+          <p className="text-2xl font-bold text-red-600">{BR(s.totalExpenses)}</p>
+          <p className="text-xs text-gray-400 mt-1">{expenseCount} transações</p>
+        </div>
+
+        {/* Lucro */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-2 rounded-lg ${isProfit ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-orange-100 dark:bg-orange-900/30'}`}>
+              {isProfit
+                ? <TrendingUp className="w-4 h-4 text-purple-600" />
+                : <TrendingDown className="w-4 h-4 text-orange-500" />
+              }
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Lucro Líquido</p>
+          </div>
+          <p className={`text-2xl font-bold ${isProfit ? 'text-purple-600' : 'text-orange-500'}`}>
+            {BR(s.netProfit)}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Margem: {s.profitMargin || 0}%</p>
+        </div>
+      </div>
+
+      {/* ✅ Breakdown receitas se houver */}
+      {(s.appointmentsRevenue > 0 || s.manualIncome > 0) && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mb-5">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Composição das Receitas</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+              <p className="text-xs text-emerald-600 font-medium mb-1">✂️ Agendamentos</p>
+              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{BR(s.appointmentsRevenue || 0)}</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
+              <p className="text-xs text-blue-600 font-medium mb-1">💳 Transações manuais</p>
+              <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{BR(s.manualIncome || 0)}</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Menu rápido */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { href: '/financeiro/transacoes', label: 'Transações',  sub: 'Ver todas',          icon: Calendar,      gradient: 'from-blue-500 to-cyan-500'    },
+          { href: '/financeiro/comissoes',  label: 'Comissões',   sub: 'Gestão de comissões',icon: DollarSign,    gradient: 'from-purple-500 to-pink-500'  },
+          { href: '/financeiro/metas',      label: 'Metas',       sub: 'Acompanhar objetivos',icon: TrendingUp,   gradient: 'from-orange-500 to-red-500'   },
+          { href: '/financeiro/relatorios', label: 'Relatórios',  sub: 'DRE, Fluxo, Balanço',icon: TrendingDown, gradient: 'from-indigo-500 to-blue-500'  },
+        ].map(({ href, label, sub, icon: Icon, gradient }) => (
+          <Link key={href} href={href} className="group">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
+              <div className={`p-2.5 bg-gradient-to-br ${gradient} rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform`}>
+                <Icon className="w-4 h-4 text-white" />
+              </div>
+              <p className="font-bold text-gray-900 dark:text-white text-sm">{label}</p>
+              <p className="text-xs text-gray-400">{sub}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Fluxo de Caixa */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 mb-5">
+        <h3 className="text-base font-bold text-gray-800 dark:text-white mb-5">
+          📊 Fluxo de Caixa — Últimos 6 Meses
+        </h3>
+
+        {cashflow?.cashflow?.length > 0 ? (
+          <div className="space-y-4">
+            {cashflow.cashflow.map((month: any, index: number) => {
+              const maxVal = Math.max(...cashflow.cashflow.map((m: any) => Math.max(m.revenue, m.expenses, 1)));
+              const revW  = (month.revenue  / maxVal) * 100;
+              const expW  = (month.expenses / maxVal) * 100;
+
+              return (
+                <div key={index}>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 w-20 shrink-0">{month.month}</span>
+                    <span className={`text-xs font-bold ml-auto ${month.netFlow >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {month.netFlow >= 0 ? '+' : ''}{BR(month.netFlow)}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-400 w-16">Receitas</span>
+                      <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-end px-2 transition-all"
+                          style={{ width: `${revW}%` }}>
+                          {revW > 25 && <span className="text-[10px] font-bold text-white">{BR(month.revenue)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-400 w-16">Despesas</span>
+                      <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-red-400 to-orange-400 flex items-center justify-end px-2 transition-all"
+                          style={{ width: `${expW}%` }}>
+                          {expW > 25 && <span className="text-[10px] font-bold text-white">{BR(month.expenses)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 text-sm py-8">Nenhum dado disponível</p>
         )}
-
-        {/* Transações Recentes */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-800">
-              🕐 Transações Recentes
-            </h3>
-            <Link
-              href="/financeiro/transacoes"
-              className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
-            >
-              Ver todas →
-            </Link>
-          </div>
-
-          {recentTransactions.length > 0 ? (
-            <div className="space-y-3">
-              {recentTransactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-purple-300 transition"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${
-                      transaction.type === 'income'
-                        ? 'bg-green-100 text-green-600'
-                        : 'bg-red-100 text-red-600'
-                    }`}>
-                      {transaction.type === 'income'
-                        ? <ArrowUpRight className="w-5 h-5" />
-                        : <ArrowDownRight className="w-5 h-5" />
-                      }
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{transaction.description}</p>
-                      <p className="text-sm text-gray-500 capitalize">{transaction.category}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}R$ {Number(transaction.amount).toFixed(2)}
-                    </p>
-                    {/* ✅ FIX: data corrigida (bug UTC → +12h evita shift de dia) */}
-                    <p className="text-xs text-gray-500">
-                      {new Date(transaction.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 py-8">Nenhuma transação registrada</p>
-          )}
-        </div>
       </div>
 
-      {/* Modal */}
+      {/* Despesas por Categoria */}
+      {summary?.breakdown?.expensesByCategory && Object.keys(summary.breakdown.expensesByCategory).length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 mb-5">
+          <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4">
+            📋 Despesas por Categoria
+          </h3>
+          <div className="space-y-3">
+            {Object.entries(summary.breakdown.expensesByCategory).map(([cat, amount]: [string, any]) => {
+              const pct = s.totalExpenses > 0 ? (amount / s.totalExpenses) * 100 : 0;
+              return (
+                <div key={cat}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {CATEGORY_LABELS[cat] || `📌 ${cat}`}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400">{pct.toFixed(1)}%</span>
+                      <span className="text-sm font-bold text-gray-800 dark:text-white">{BR(amount)}</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-red-400 to-orange-400 rounded-full transition-all"
+                      style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Transações Recentes */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-gray-800 dark:text-white">🕐 Transações Recentes</h3>
+          <Link href="/financeiro/transacoes" className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-semibold">
+            Ver todas →
+          </Link>
+        </div>
+
+        {recentTransactions.length > 0 ? (
+          <div className="space-y-2">
+            {recentTransactions.map((tx) => (
+              <div key={tx.id}
+                className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 transition">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-500'}`}>
+                    {tx.type === 'income'
+                      ? <ArrowUpRight className="w-4 h-4" />
+                      : <ArrowDownRight className="w-4 h-4" />
+                    }
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{tx.description}</p>
+                    <p className="text-xs text-gray-400 capitalize">{CATEGORY_LABELS[tx.category] || tx.category}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${tx.type === 'income' ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {tx.type === 'income' ? '+' : '-'}{BR(Number(tx.amount))}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(tx.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 text-sm py-8">Nenhuma transação registrada</p>
+        )}
+      </div>
+
       <AddTransactionModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onSuccess={handleTransactionAdded}
+        onSuccess={loadData}
       />
-    </div>
+    </>
   );
 }

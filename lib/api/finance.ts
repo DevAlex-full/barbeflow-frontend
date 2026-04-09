@@ -92,6 +92,14 @@ export const financeApi = {
     return response.data;
   },
 
+  // Resumo financeiro do período
+  getSummary: async (startDate?: string, endDate?: string) => {
+    const response = await api.get('/finance/summary', {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  },
+
   // Balanço Patrimonial
   getBalance: async (date?: string) => {
     const response = await api.get<BalanceReport>('/finance/balance', {
