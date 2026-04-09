@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Gift, Plus, Search, Scissors, Calendar, Clock,
-  CheckCircle2, XCircle, AlertCircle, ChevronRight,
-  X, Save, Loader2, Users, RefreshCw, TrendingUp
+  Gift, Plus, Search, Scissors, ChevronRight,
+  CheckCircle2, XCircle, X, Save, Loader2, RefreshCw, User
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -21,44 +20,49 @@ interface CustomerPackage {
   notes: string | null;
   customer: { name: string; phone: string } | null;
   client:   { name: string; phone: string } | null;
-  usages: any[];
+  usages: { id: string; usedAt: string; notes: string | null; barberId: string | null; barber?: { name: string } | null }[];
 }
 
 const BR = (n: number) => `R$ ${Number(n).toFixed(2).replace('.', ',')}`;
-const DT = (d: string) => new Date(d + (d.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+const DT = (d: string) =>
+  new Date(d + (d.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+const DTH = (d: string) =>
+  new Date(d).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
 const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  active:    { label: 'Ativo',      color: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', icon: CheckCircle2  },
-  expired:   { label: 'Expirado',   color: 'bg-red-50 text-red-700 ring-1 ring-red-200',             icon: XCircle       },
-  completed: { label: 'Concluído',  color: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',          icon: CheckCircle2  },
-  cancelled: { label: 'Cancelado',  color: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200',          icon: XCircle       },
+  active:    { label: 'Ativo',     color: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', icon: CheckCircle2 },
+  expired:   { label: 'Expirado',  color: 'bg-red-50 text-red-700 ring-1 ring-red-200',             icon: XCircle      },
+  completed: { label: 'Concluído', color: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',          icon: CheckCircle2 },
+  cancelled: { label: 'Cancelado', color: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200',          icon: XCircle      },
 };
 
 export default function PacotesPage() {
-  const [packages, setPackages] = useState<CustomerPackage[]>([]);
-  const [summary, setSummary]   = useState<any>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const [packages,     setPackages]     = useState<CustomerPackage[]>([]);
+  const [summary,      setSummary]      = useState<any>(null);
+  const [customers,    setCustomers]    = useState<any[]>([]);
+  const [barbers,      setBarbers]      = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState('');
   const [filterStatus, setFilterStatus] = useState('active');
 
-  // Modals
-  const [showAddModal, setShowAddModal]     = useState(false);
-  const [showUseModal, setShowUseModal]     = useState(false);
+  const [showAddModal,    setShowAddModal]    = useState(false);
+  const [showUseModal,    setShowUseModal]    = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedPkg, setSelectedPkg]       = useState<CustomerPackage | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [selectedPkg,     setSelectedPkg]     = useState<CustomerPackage | null>(null);
+  const [saving,          setSaving]          = useState(false);
 
-  // Form
   const [form, setForm] = useState({
     customerId: '', name: 'Pacote 4 Cortes', description: '',
     totalCuts: 4, price: '', startDate: '', expirationDate: '', notes: ''
   });
-  const [useForm, setUseForm] = useState({ notes: '' });
+
+  // ✅ barberId agora obrigatório no modal de corte
+  const [useForm, setUseForm] = useState({ barberId: '', notes: '' });
 
   useEffect(() => {
     loadData();
     api.get('/customers').then(r => setCustomers(r.data)).catch(() => {});
+    api.get('/users').then(r => setBarbers(r.data)).catch(() => {});
   }, []);
 
   const loadData = async () => {
@@ -81,14 +85,14 @@ export default function PacotesPage() {
     try {
       setSaving(true);
       await api.post('/packages', {
-        customerId:    form.customerId || null,
-        name:          form.name,
-        description:   form.description,
-        totalCuts:     Number(form.totalCuts),
-        price:         Number(form.price),
-        startDate:     form.startDate + 'T12:00:00',
+        customerId:     form.customerId || null,
+        name:           form.name,
+        description:    form.description,
+        totalCuts:      Number(form.totalCuts),
+        price:          Number(form.price),
+        startDate:      form.startDate + 'T12:00:00',
         expirationDate: form.expirationDate + 'T23:59:59',
-        notes:         form.notes
+        notes:          form.notes
       });
       setShowAddModal(false);
       resetForm();
@@ -99,17 +103,26 @@ export default function PacotesPage() {
 
   const handleUse = async () => {
     if (!selectedPkg) return;
+
+    // ✅ barbeiro obrigatório
+    if (!useForm.barberId) {
+      return alert('Selecione o barbeiro que realizou o corte');
+    }
+
     try {
       setSaving(true);
-      const res = await api.post(`/packages/${selectedPkg.id}/use`, { notes: useForm.notes });
+      const res = await api.post(`/packages/${selectedPkg.id}/use`, {
+        barberId: useForm.barberId,
+        notes:    useForm.notes
+      });
+
       setShowUseModal(false);
-      setUseForm({ notes: '' });
+      setUseForm({ barberId: '', notes: '' });
       loadData();
-      if (res.data.completed) {
-        alert(`✅ Último corte registrado! Pacote "${selectedPkg.name}" concluído.`);
-      } else {
-        alert(`✂️ Corte registrado! Restam ${res.data.remaining} corte(s).`);
-      }
+      alert(res.data.message || (res.data.completed
+        ? `✅ Pacote "${selectedPkg.name}" concluído!`
+        : `✂️ Corte registrado! Restam ${res.data.remaining} corte(s).`
+      ));
     } catch (err: any) {
       alert(err?.response?.data?.error || 'Erro ao registrar uso');
     }
@@ -130,19 +143,19 @@ export default function PacotesPage() {
   });
 
   const filtered = packages.filter(p => {
-    const name    = (p.customer?.name || p.client?.name || '').toLowerCase();
-    const pkgName = p.name.toLowerCase();
-    const matchSearch = !search || name.includes(search.toLowerCase()) || pkgName.includes(search.toLowerCase());
-    const matchStatus = !filterStatus || p.status === filterStatus;
-    return matchSearch && matchStatus;
+    const name     = (p.customer?.name || p.client?.name || '').toLowerCase();
+    const pkgName  = p.name.toLowerCase();
+    const matchS   = !search       || name.includes(search.toLowerCase()) || pkgName.includes(search.toLowerCase());
+    const matchSt  = !filterStatus || p.status === filterStatus;
+    return matchS && matchSt;
   });
 
-  const progressPct = (pkg: CustomerPackage) =>
-    pkg.totalCuts > 0 ? Math.round((pkg.usedCuts / pkg.totalCuts) * 100) : 0;
+  const pct = (pkg: CustomerPackage) => pkg.totalCuts > 0 ? Math.round((pkg.usedCuts / pkg.totalCuts) * 100) : 0;
+  const valuePerCut = (pkg: CustomerPackage) => Number(pkg.price) / pkg.totalCuts;
 
   return (
     <>
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl shadow-md shadow-violet-200 dark:shadow-violet-900/30">
@@ -153,22 +166,20 @@ export default function PacotesPage() {
             <p className="text-xs text-gray-400 dark:text-gray-500">Gerencie pacotes de cortes e serviços</p>
           </div>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowAddModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition shadow-sm"
-        >
+        <button onClick={() => { resetForm(); setShowAddModal(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
           <Plus className="w-4 h-4" /> Novo Pacote
         </button>
       </div>
 
-      {/* ── KPIs ── */}
+      {/* KPIs */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
-            { label: 'Ativos',          value: String(summary.active),      color: 'text-emerald-600' },
-            { label: 'Expirados',       value: String(summary.expired),     color: 'text-red-500'     },
-            { label: 'Concluídos',      value: String(summary.completed),   color: 'text-blue-600'    },
-            { label: 'Receita Total',   value: BR(summary.totalRevenue),    color: 'text-violet-600'  }
+            { label: 'Ativos',        value: String(summary.active),    color: 'text-emerald-600' },
+            { label: 'Expirados',     value: String(summary.expired),   color: 'text-red-500'     },
+            { label: 'Concluídos',    value: String(summary.completed), color: 'text-blue-600'    },
+            { label: 'Receita Total', value: BR(summary.totalRevenue),  color: 'text-violet-600'  }
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
               <p className="text-xs text-gray-400 uppercase tracking-wide mb-1.5">{label}</p>
@@ -185,29 +196,26 @@ export default function PacotesPage() {
             <span className="text-sm font-bold text-violet-600">{summary.usedCuts} / {summary.totalCuts}</span>
           </div>
           <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
-              style={{ width: `${summary.totalCuts > 0 ? (summary.usedCuts / summary.totalCuts) * 100 : 0}%` }}
-            />
+            <div className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
+              style={{ width: `${summary.totalCuts > 0 ? (summary.usedCuts / summary.totalCuts) * 100 : 0}%` }} />
           </div>
           <p className="text-xs text-gray-400 mt-1">{summary.remainingCuts} corte(s) restantes</p>
         </div>
       )}
 
-      {/* ── Filters ── */}
+      {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mb-5 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Buscar cliente ou pacote..."
             value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 transition"
-          />
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 transition" />
         </div>
         <div className="flex gap-2">
           {[
-            { key: '', label: 'Todos' },
-            { key: 'active', label: 'Ativos' },
-            { key: 'expired', label: 'Expirados' },
+            { key: '',          label: 'Todos'      },
+            { key: 'active',    label: 'Ativos'     },
+            { key: 'expired',   label: 'Expirados'  },
             { key: 'completed', label: 'Concluídos' },
           ].map(({ key, label }) => (
             <button key={key} onClick={() => setFilterStatus(key)}
@@ -215,9 +223,7 @@ export default function PacotesPage() {
                 filterStatus === key
                   ? 'bg-violet-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}>
-              {label}
-            </button>
+              }`}>{label}</button>
           ))}
         </div>
         <button onClick={loadData} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition text-gray-400">
@@ -225,7 +231,7 @@ export default function PacotesPage() {
         </button>
       </div>
 
-      {/* ── Cards ── */}
+      {/* Cards */}
       {loading ? (
         <div className="flex justify-center items-center py-20">
           <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
@@ -240,19 +246,18 @@ export default function PacotesPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(pkg => {
-            const clientName = pkg.customer?.name || pkg.client?.name || 'Sem cliente';
+            const clientName  = pkg.customer?.name || pkg.client?.name || 'Sem cliente';
             const clientPhone = pkg.customer?.phone || pkg.client?.phone || '';
             const { label: sLabel, color: sColor, icon: SIcon } = STATUS_CFG[pkg.status] || STATUS_CFG.active;
-            const pct = progressPct(pkg);
-            const remaining = pkg.totalCuts - pkg.usedCuts;
-            const isExpiringSoon = pkg.status === 'active' &&
+            const progress   = pct(pkg);
+            const remaining  = pkg.totalCuts - pkg.usedCuts;
+            const expiringSoon = pkg.status === 'active' &&
               new Date(pkg.expirationDate).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
 
             return (
-              <div key={pkg.id} className={`bg-white dark:bg-gray-800 rounded-2xl border ${
-                isExpiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-100 dark:border-gray-700'
-              } overflow-hidden shadow-sm hover:shadow-md transition-shadow`}>
-                {/* Card header */}
+              <div key={pkg.id} className={`bg-white dark:bg-gray-800 rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
+                expiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-100 dark:border-gray-700'
+              }`}>
                 <div className="p-5 pb-3">
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1 min-w-0">
@@ -260,46 +265,44 @@ export default function PacotesPage() {
                       {clientPhone && <p className="text-xs text-gray-400">{clientPhone}</p>}
                     </div>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ml-2 ${sColor}`}>
-                      <SIcon className="w-3 h-3" />
-                      {sLabel}
+                      <SIcon className="w-3 h-3" />{sLabel}
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-violet-600 dark:text-violet-400 mt-1">{pkg.name}</p>
                 </div>
 
                 {/* Progress */}
-                <div className="px-5 pb-4">
+                <div className="px-5 pb-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-gray-400">Cortes utilizados</span>
                     <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{pkg.usedCuts}/{pkg.totalCuts}</span>
                   </div>
                   <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        pct >= 100 ? 'bg-blue-500' : pct >= 75 ? 'bg-orange-500' : 'bg-violet-500'
-                      }`}
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
+                    <div className={`h-2 rounded-full transition-all ${
+                      progress >= 100 ? 'bg-blue-500' : progress >= 75 ? 'bg-orange-500' : 'bg-violet-500'
+                    }`} style={{ width: `${Math.min(progress, 100)}%` }} />
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[11px] text-gray-400">
                       {remaining > 0 ? `${remaining} restante(s)` : 'Concluído'}
                     </span>
-                    <span className="text-[11px] font-semibold text-violet-600">{BR(pkg.price)}</span>
+                    <span className="text-[11px] font-semibold text-violet-600">
+                      {BR(pkg.price)} · {BR(valuePerCut(pkg))}/corte
+                    </span>
                   </div>
                 </div>
 
                 {/* Dates */}
-                <div className="px-5 pb-4 grid grid-cols-2 gap-2">
+                <div className="px-5 pb-3 grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5">
                     <p className="text-[10px] text-gray-400 mb-0.5">Início</p>
                     <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{DT(pkg.startDate)}</p>
                   </div>
-                  <div className={`rounded-xl p-2.5 ${isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
-                    <p className={`text-[10px] mb-0.5 ${isExpiringSoon ? 'text-orange-500' : 'text-gray-400'}`}>
-                      Expira{isExpiringSoon ? ' em breve ⚠️' : ''}
+                  <div className={`rounded-xl p-2.5 ${expiringSoon ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                    <p className={`text-[10px] mb-0.5 ${expiringSoon ? 'text-orange-500' : 'text-gray-400'}`}>
+                      Expira{expiringSoon ? ' em breve ⚠️' : ''}
                     </p>
-                    <p className={`text-xs font-medium ${isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <p className={`text-xs font-medium ${expiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
                       {DT(pkg.expirationDate)}
                     </p>
                   </div>
@@ -316,25 +319,18 @@ export default function PacotesPage() {
                 {/* Actions */}
                 <div className="px-4 pb-4 flex gap-2">
                   {pkg.status === 'active' && remaining > 0 && (
-                    <button
-                      onClick={() => { setSelectedPkg(pkg); setShowUseModal(true); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl transition"
-                    >
-                      <Scissors className="w-3.5 h-3.5" />
-                      Registrar Corte
+                    <button onClick={() => { setSelectedPkg(pkg); setUseForm({ barberId: '', notes: '' }); setShowUseModal(true); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl transition">
+                      <Scissors className="w-3.5 h-3.5" /> Registrar Corte
                     </button>
                   )}
-                  <button
-                    onClick={() => { setSelectedPkg(pkg); setShowDetailModal(true); }}
-                    className="p-2 border border-gray-200 dark:border-gray-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition"
-                  >
+                  <button onClick={() => { setSelectedPkg(pkg); setShowDetailModal(true); }}
+                    className="p-2 border border-gray-200 dark:border-gray-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                   {pkg.status === 'active' && (
-                    <button
-                      onClick={() => handleCancel(pkg)}
-                      className="p-2 border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
-                    >
+                    <button onClick={() => handleCancel(pkg)}
+                      className="p-2 border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition">
                       <XCircle className="w-4 h-4" />
                     </button>
                   )}
@@ -345,7 +341,7 @@ export default function PacotesPage() {
         </div>
       )}
 
-      {/* ── MODAL: Novo Pacote ── */}
+      {/* MODAL: Novo Pacote */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl">
@@ -355,7 +351,6 @@ export default function PacotesPage() {
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Cliente</label>
@@ -377,11 +372,19 @@ export default function PacotesPage() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Valor (R$) *</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Valor Total (R$) *</label>
                   <input type="number" step="0.01" min="0" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
                     placeholder="0,00"
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500" />
                 </div>
+                {/* Preview valor por corte */}
+                {form.price && form.totalCuts > 0 && (
+                  <div className="col-span-2 bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3 text-center">
+                    <p className="text-xs text-violet-600 dark:text-violet-400">
+                      Cada corte = <strong>{BR(Number(form.price) / form.totalCuts)}</strong> registrado imediatamente no financeiro
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Data Início *</label>
                   <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
@@ -399,10 +402,11 @@ export default function PacotesPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 resize-none" />
               </div>
             </div>
-
             <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-              <button onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
-              <button onClick={handleCreate} disabled={saving} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={() => setShowAddModal(false)}
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
+              <button onClick={handleCreate} disabled={saving}
+                className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Criar Pacote
               </button>
@@ -411,7 +415,7 @@ export default function PacotesPage() {
         </div>
       )}
 
-      {/* ── MODAL: Registrar Corte ── */}
+      {/* MODAL: Registrar Corte */}
       {showUseModal && selectedPkg && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl">
@@ -419,33 +423,58 @@ export default function PacotesPage() {
               <div>
                 <h2 className="text-base font-bold text-gray-900 dark:text-white">Registrar Corte</h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {selectedPkg.customer?.name || selectedPkg.client?.name} —
-                  <span className="font-semibold text-violet-600 ml-1">{selectedPkg.usedCuts}/{selectedPkg.totalCuts} cortes</span>
+                  {selectedPkg.customer?.name || selectedPkg.client?.name} —{' '}
+                  <span className="font-semibold text-violet-600">{selectedPkg.usedCuts}/{selectedPkg.totalCuts} cortes</span>
                 </p>
               </div>
               <button onClick={() => setShowUseModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
+
             <div className="p-6 space-y-4">
-              {/* Progress visual */}
+              {/* Progress */}
               <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 border border-violet-100 dark:border-violet-800">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-violet-700 dark:text-violet-300">{selectedPkg.name}</span>
                   <span className="text-sm font-bold text-violet-700 dark:text-violet-300">
                     {selectedPkg.totalCuts - selectedPkg.usedCuts - 1 >= 0
                       ? `${selectedPkg.totalCuts - selectedPkg.usedCuts - 1} restante(s) após este`
-                      : 'Último corte!'
-                    }
+                      : 'Último corte!'}
                   </span>
                 </div>
                 <div className="w-full bg-violet-200 dark:bg-violet-900 rounded-full h-2">
-                  <div
-                    className="bg-violet-600 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(((selectedPkg.usedCuts + 1) / selectedPkg.totalCuts) * 100, 100)}%` }}
-                  />
+                  <div className="bg-violet-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min(((selectedPkg.usedCuts + 1) / selectedPkg.totalCuts) * 100, 100)}%` }} />
                 </div>
+                {/* ✅ Info de receita por corte */}
+                <p className="text-xs text-violet-600 dark:text-violet-400 mt-2 font-medium">
+                  💰 {BR(valuePerCut(selectedPkg))} será registrado no financeiro do barbeiro agora
+                </p>
               </div>
+
+              {/* ✅ Select de barbeiro — obrigatório */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  Barbeiro que realizou o corte *
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select value={useForm.barberId} onChange={e => setUseForm(p => ({ ...p, barberId: e.target.value }))}
+                    className={`w-full pl-9 pr-3 py-2.5 text-sm border rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 transition ${
+                      !useForm.barberId ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
+                    }`}>
+                    <option value="">Selecionar barbeiro...</option>
+                    {barbers.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name} ({b.commissionPercentage || 40}%)</option>
+                    ))}
+                  </select>
+                </div>
+                {!useForm.barberId && (
+                  <p className="text-xs text-orange-500 mt-1">Obrigatório para registrar comissão corretamente</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Observações (opcional)</label>
                 <input type="text" value={useForm.notes} onChange={e => setUseForm(p => ({ ...p, notes: e.target.value }))}
@@ -453,9 +482,12 @@ export default function PacotesPage() {
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500" />
               </div>
             </div>
+
             <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-              <button onClick={() => setShowUseModal(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
-              <button onClick={handleUse} disabled={saving} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={() => setShowUseModal(false)}
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
+              <button onClick={handleUse} disabled={saving || !useForm.barberId}
+                className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scissors className="w-4 h-4" />}
                 Confirmar Corte
               </button>
@@ -464,7 +496,7 @@ export default function PacotesPage() {
         </div>
       )}
 
-      {/* ── MODAL: Detalhes ── */}
+      {/* MODAL: Detalhes */}
       {showDetailModal && selectedPkg && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl max-h-[85vh] flex flex-col">
@@ -478,15 +510,15 @@ export default function PacotesPage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto space-y-4">
-              {/* Info grid */}
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { l: 'Status',      v: STATUS_CFG[selectedPkg.status]?.label || selectedPkg.status },
-                  { l: 'Valor pago',  v: BR(selectedPkg.price) },
-                  { l: 'Início',      v: DT(selectedPkg.startDate) },
-                  { l: 'Expiração',   v: DT(selectedPkg.expirationDate) },
-                  { l: 'Cortes',      v: `${selectedPkg.usedCuts} / ${selectedPkg.totalCuts}` },
-                  { l: 'Último corte', v: selectedPkg.lastCutAt ? DT(selectedPkg.lastCutAt) : 'Nenhum' }
+                  { l: 'Status',        v: STATUS_CFG[selectedPkg.status]?.label || selectedPkg.status },
+                  { l: 'Valor Total',   v: BR(selectedPkg.price) },
+                  { l: 'Por Corte',     v: BR(valuePerCut(selectedPkg)) },
+                  { l: 'Início',        v: DT(selectedPkg.startDate) },
+                  { l: 'Expiração',     v: DT(selectedPkg.expirationDate) },
+                  { l: 'Cortes',        v: `${selectedPkg.usedCuts} / ${selectedPkg.totalCuts}` },
+                  { l: 'Último corte',  v: selectedPkg.lastCutAt ? DT(selectedPkg.lastCutAt) : 'Nenhum' }
                 ].map(({ l, v }) => (
                   <div key={l} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">{l}</p>
@@ -494,26 +526,34 @@ export default function PacotesPage() {
                   </div>
                 ))}
               </div>
+
               {selectedPkg.notes && (
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Observações</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{selectedPkg.notes}</p>
                 </div>
               )}
-              {/* Histórico de uso */}
+
+              {/* ✅ Histórico com barbeiro */}
               {selectedPkg.usages.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Histórico de Cortes</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Histórico de Cortes
+                  </p>
                   <div className="space-y-2">
-                    {selectedPkg.usages.map((u: any, i: number) => (
+                    {selectedPkg.usages.map((u, i) => (
                       <div key={u.id} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
                         <div className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
                           {i + 1}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            {new Date(u.usedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{DTH(u.usedAt)}</p>
+                          {/* ✅ Mostrar barbeiro que cortou */}
+                          {u.barber?.name && (
+                            <p className="text-[11px] text-violet-600 dark:text-violet-400 font-medium">
+                              ✂️ {u.barber.name} · {BR(valuePerCut(selectedPkg))}
+                            </p>
+                          )}
                           {u.notes && <p className="text-[11px] text-gray-400">{u.notes}</p>}
                         </div>
                         <Scissors className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
