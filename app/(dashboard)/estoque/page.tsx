@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Package, Plus, Search, AlertTriangle, TrendingUp, TrendingDown,
-  BarChart3, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle,
-  SlidersHorizontal, X, Save, Loader2, History, RefreshCw
+  Package, Plus, Search, AlertTriangle, BarChart3,
+  Edit2, Trash2, ArrowUpCircle, ArrowDownCircle,
+  SlidersHorizontal, X, Save, Loader2, History, RefreshCw,
+  User, ShoppingCart, DollarSign
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -30,34 +31,42 @@ const CATEGORIES: Record<string, string> = {
 };
 
 const UNITS = ['un', 'ml', 'l', 'g', 'kg', 'cx', 'fr'];
-
 const BR = (n: number | null) => n != null ? `R$ ${Number(n).toFixed(2).replace('.', ',')}` : '-';
 
 export default function EstoquePage() {
-  const [items, setItems]           = useState<StockItem[]>([]);
-  const [summary, setSummary]       = useState<any>(null);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState('');
+  const [items,          setItems]          = useState<StockItem[]>([]);
+  const [summary,        setSummary]        = useState<any>(null);
+  const [barbers,        setBarbers]        = useState<any[]>([]);
+  const [customers,      setCustomers]      = useState<any[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [search,         setSearch]         = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  const [showLowStock, setShowLowStock]     = useState(false);
+  const [showLowStock,   setShowLowStock]   = useState(false);
 
-  // Modals
-  const [showAddModal, setShowAddModal]           = useState(false);
-  const [showEditModal, setShowEditModal]         = useState(false);
-  const [showMovementModal, setShowMovementModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal]   = useState(false);
-  const [selectedItem, setSelectedItem]           = useState<StockItem | null>(null);
-  const [movements, setMovements]                 = useState<any[]>([]);
+  const [showAddModal,      setShowAddModal]      = useState(false);
+  const [showEditModal,     setShowEditModal]      = useState(false);
+  const [showMovementModal, setShowMovementModal]  = useState(false);
+  const [showHistoryModal,  setShowHistoryModal]   = useState(false);
+  const [selectedItem,      setSelectedItem]       = useState<StockItem | null>(null);
+  const [movements,         setMovements]          = useState<any[]>([]);
+  const [saving,            setSaving]             = useState(false);
 
-  // Forms
   const [form, setForm] = useState({
     name: '', category: 'product', quantity: 0, minQuantity: 5,
     unit: 'un', costPrice: '', salePrice: '', supplier: '', notes: ''
   });
-  const [movForm, setMovForm] = useState({ type: 'in', quantity: 1, reason: '' });
-  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  // ✅ movForm agora inclui barbeiro, cliente e preço unitário para vendas
+  const [movForm, setMovForm] = useState({
+    type: 'in', quantity: 1, reason: '',
+    barberId: '', customerId: '', unitPrice: ''
+  });
+
+  useEffect(() => {
+    loadData();
+    api.get('/users').then(r => setBarbers(r.data)).catch(() => {});
+    api.get('/customers').then(r => setCustomers(r.data)).catch(() => {});
+  }, []);
 
   const loadData = async () => {
     try {
@@ -111,21 +120,44 @@ export default function EstoquePage() {
 
   const handleMovement = async () => {
     if (!selectedItem) return;
+
+    // ✅ Venda exige barbeiro
+    if (movForm.type === 'out' && !movForm.barberId) {
+      return alert('Selecione o barbeiro responsável pela venda');
+    }
+
     try {
       setSaving(true);
-      await api.post(`/stock/${selectedItem.id}/movement`, {
+      const payload: any = {
         type:     movForm.type,
         quantity: Number(movForm.quantity),
-        reason:   movForm.reason
-      });
+        reason:   movForm.reason || null
+      };
+
+      // ✅ Só envia campos de venda se for saída
+      if (movForm.type === 'out') {
+        payload.barberId   = movForm.barberId   || null;
+        payload.customerId = movForm.customerId || null;
+        payload.unitPrice  = movForm.unitPrice  ? Number(movForm.unitPrice) : null;
+      }
+
+      const res = await api.post(`/stock/${selectedItem.id}/movement`, payload);
+
       setShowMovementModal(false);
-      setMovForm({ type: 'in', quantity: 1, reason: '' });
+      setMovForm({ type: 'in', quantity: 1, reason: '', barberId: '', customerId: '', unitPrice: '' });
       loadData();
-      alert('Movimento registrado!');
+
+      // ✅ Feedback de venda
+      if (res.data.sale?.message) {
+        alert(res.data.sale.message);
+      } else {
+        alert('Movimento registrado com sucesso!');
+      }
     } catch (err: any) {
       alert(err?.response?.data?.error || 'Erro ao registrar movimento');
+    } finally {
+      setSaving(false);
     }
-    finally { setSaving(false); }
   };
 
   const handleDelete = async (item: StockItem) => {
@@ -160,28 +192,45 @@ export default function EstoquePage() {
 
   const openMovement = (item: StockItem) => {
     setSelectedItem(item);
-    setMovForm({ type: 'in', quantity: 1, reason: '' });
+    setMovForm({
+      type: 'in', quantity: 1, reason: '',
+      barberId: '', customerId: '',
+      unitPrice: item.salePrice != null ? String(item.salePrice) : ''
+    });
     setShowMovementModal(true);
   };
 
-  const resetForm = () => setForm({ name: '', category: 'product', quantity: 0, minQuantity: 5, unit: 'un', costPrice: '', salePrice: '', supplier: '', notes: '' });
+  const resetForm = () => setForm({
+    name: '', category: 'product', quantity: 0, minQuantity: 5,
+    unit: 'un', costPrice: '', salePrice: '', supplier: '', notes: ''
+  });
 
   const filtered = items.filter(item => {
-    const matchSearch   = !search       || item.name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch   = !search         || item.name.toLowerCase().includes(search.toLowerCase());
     const matchCat      = !filterCategory || item.category === filterCategory;
-    const matchLowStock = !showLowStock  || item.quantity <= item.minQuantity;
+    const matchLowStock = !showLowStock   || item.quantity <= item.minQuantity;
     return matchSearch && matchCat && matchLowStock;
   });
 
   const stockStatus = (item: StockItem) => {
-    if (item.quantity === 0)              return { label: 'Sem estoque', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' };
+    if (item.quantity === 0)               return { label: 'Sem estoque',   color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'         };
     if (item.quantity <= item.minQuantity) return { label: 'Estoque baixo', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' };
     return { label: 'Ok', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' };
   };
 
+  // Preview do valor de venda no modal
+  const salePreview = selectedItem && movForm.type === 'out' && movForm.quantity > 0
+    ? (movForm.unitPrice ? Number(movForm.unitPrice) : Number(selectedItem.salePrice || 0)) * Number(movForm.quantity)
+    : 0;
+
+  const selectedBarber = barbers.find(b => b.id === movForm.barberId);
+  const commissionPreview = salePreview > 0 && selectedBarber
+    ? salePreview * ((selectedBarber.commissionPercentage || 40) / 100)
+    : 0;
+
   return (
     <>
-      {/* ── Page header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl shadow-md shadow-teal-200 dark:shadow-teal-900/30">
@@ -192,22 +241,20 @@ export default function EstoquePage() {
             <p className="text-xs text-gray-400 dark:text-gray-500">Gerencie produtos, insumos e equipamentos</p>
           </div>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowAddModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition shadow-sm"
-        >
+        <button onClick={() => { resetForm(); setShowAddModal(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
           <Plus className="w-4 h-4" /> Novo Item
         </button>
       </div>
 
-      {/* ── Summary KPIs ── */}
+      {/* KPIs */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total de Itens',    value: String(summary.totalItems),    icon: Package,        color: 'text-teal-600'   },
-            { label: 'Estoque Baixo',     value: String(summary.lowStockItems), icon: AlertTriangle,  color: 'text-orange-500' },
-            { label: 'Sem Estoque',       value: String(summary.outOfStock),    icon: X,              color: 'text-red-500'    },
-            { label: 'Valor Total (custo)', value: BR(summary.totalValue),      icon: BarChart3,      color: 'text-indigo-600' }
+            { label: 'Total de Itens',      value: String(summary.totalItems),    icon: Package,       color: 'text-teal-600'   },
+            { label: 'Estoque Baixo',       value: String(summary.lowStockItems), icon: AlertTriangle, color: 'text-orange-500' },
+            { label: 'Sem Estoque',         value: String(summary.outOfStock),    icon: X,             color: 'text-red-500'    },
+            { label: 'Valor Total (custo)', value: BR(summary.totalValue),        icon: BarChart3,     color: 'text-indigo-600' }
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -220,31 +267,25 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* ── Filters ── */}
+      {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mb-5 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text" placeholder="Buscar item..."
+          <input type="text" placeholder="Buscar item..."
             value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition"
-          />
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition" />
         </div>
-        <select
-          value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500"
-        >
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500">
           <option value="">Todas categorias</option>
           {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button
-          onClick={() => setShowLowStock(!showLowStock)}
+        <button onClick={() => setShowLowStock(!showLowStock)}
           className={`flex items-center gap-2 px-3 py-2 text-sm rounded-xl border-2 transition font-medium ${
             showLowStock
               ? 'border-orange-500 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
               : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-          }`}
-        >
+          }`}>
           <AlertTriangle className="w-4 h-4" /> Estoque baixo
         </button>
         <button onClick={loadData} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition text-gray-400">
@@ -252,7 +293,7 @@ export default function EstoquePage() {
         </button>
       </div>
 
-      {/* ── Table ── */}
+      {/* Tabela */}
       {loading ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-center items-center py-20">
           <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
@@ -288,7 +329,7 @@ export default function EstoquePage() {
                       </td>
                       <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">{item.minQuantity} {item.unit}</td>
                       <td className="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">{BR(item.costPrice)}</td>
-                      <td className="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">{BR(item.salePrice)}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-teal-700 dark:text-teal-400">{BR(item.salePrice)}</td>
                       <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">{item.supplier || '-'}</td>
                       <td className="px-5 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${status.color}`}>
@@ -297,7 +338,7 @@ export default function EstoquePage() {
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openMovement(item)} title="Entrada/Saída"
+                          <button onClick={() => openMovement(item)} title="Entrada/Venda/Ajuste"
                             className="p-1.5 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition">
                             <SlidersHorizontal className="w-4 h-4" />
                           </button>
@@ -324,7 +365,7 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* ── MODAL: Adicionar / Editar ── */}
+      {/* MODAL: Adicionar / Editar */}
       {(showAddModal || showEditModal) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl">
@@ -332,18 +373,17 @@ export default function EstoquePage() {
               <h2 className="text-base font-bold text-gray-900 dark:text-white">
                 {showAddModal ? 'Novo Item' : 'Editar Item'}
               </h2>
-              <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
+              <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Nome *</label>
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition"
-                  />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Categoria</label>
@@ -374,12 +414,14 @@ export default function EstoquePage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Preço de custo (R$)</label>
                   <input type="number" step="0.01" min="0" value={form.costPrice} onChange={e => setForm(p => ({ ...p, costPrice: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" placeholder="0,00" />
+                    placeholder="0,00"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Preço de venda (R$)</label>
                   <input type="number" step="0.01" min="0" value={form.salePrice} onChange={e => setForm(p => ({ ...p, salePrice: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" placeholder="0,00" />
+                    placeholder="0,00"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Fornecedor</label>
@@ -393,12 +435,9 @@ export default function EstoquePage() {
                 </div>
               </div>
             </div>
-
             <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
               <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                Cancelar
-              </button>
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
               <button onClick={showAddModal ? handleCreate : handleEdit} disabled={saving}
                 className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -409,14 +448,16 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* ── MODAL: Movimento ── */}
+      {/* MODAL: Movimento (Entrada / Venda / Ajuste) */}
       {showMovementModal && selectedItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
               <div>
                 <h2 className="text-base font-bold text-gray-900 dark:text-white">Registrar Movimentação</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{selectedItem.name} — estoque atual: <strong>{selectedItem.quantity} {selectedItem.unit}</strong></p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {selectedItem.name} — estoque atual: <strong>{selectedItem.quantity} {selectedItem.unit}</strong>
+                </p>
               </div>
               <button onClick={() => setShowMovementModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
                 <X className="w-5 h-5 text-gray-400" />
@@ -424,13 +465,14 @@ export default function EstoquePage() {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Tipo */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Tipo de Movimento</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { key: 'in',         label: 'Entrada',  icon: ArrowUpCircle,   color: 'text-emerald-600' },
-                    { key: 'out',        label: 'Saída',    icon: ArrowDownCircle, color: 'text-red-500'     },
-                    { key: 'adjustment', label: 'Ajuste',   icon: SlidersHorizontal, color: 'text-indigo-600' }
+                    { key: 'in',         label: 'Entrada', icon: ArrowUpCircle,    color: 'text-emerald-600' },
+                    { key: 'out',        label: 'Venda',   icon: ShoppingCart,     color: 'text-teal-600'    },
+                    { key: 'adjustment', label: 'Ajuste',  icon: SlidersHorizontal,color: 'text-indigo-600'  }
                   ].map(({ key, label, icon: Icon, color }) => (
                     <button key={key} onClick={() => setMovForm(p => ({ ...p, type: key }))}
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition text-sm font-medium ${
@@ -444,38 +486,129 @@ export default function EstoquePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Quantidade */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                   Quantidade ({selectedItem.unit})
                   {movForm.type === 'adjustment' && <span className="ml-1 text-indigo-500">— será o novo total</span>}
                 </label>
-                <input type="number" min="0" value={movForm.quantity} onChange={e => setMovForm(p => ({ ...p, quantity: Number(e.target.value) }))}
+                <input type="number" min="1" value={movForm.quantity}
+                  onChange={e => setMovForm(p => ({ ...p, quantity: Number(e.target.value) }))}
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" />
               </div>
+
+              {/* ✅ Campos exclusivos de VENDA */}
+              {movForm.type === 'out' && (
+                <>
+                  {/* Barbeiro obrigatório */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                      Barbeiro responsável pela venda *
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <select value={movForm.barberId}
+                        onChange={e => setMovForm(p => ({ ...p, barberId: e.target.value }))}
+                        className={`w-full pl-9 pr-3 py-2.5 text-sm border rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition ${
+                          !movForm.barberId ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
+                        }`}>
+                        <option value="">Selecionar barbeiro...</option>
+                        {barbers.map((b: any) => (
+                          <option key={b.id} value={b.id}>{b.name} ({b.commissionPercentage || 40}%)</option>
+                        ))}
+                      </select>
+                    </div>
+                    {!movForm.barberId && (
+                      <p className="text-xs text-orange-500 mt-1">Obrigatório para registrar comissão</p>
+                    )}
+                  </div>
+
+                  {/* Cliente opcional */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                      Cliente (opcional)
+                    </label>
+                    <div className="relative">
+                      <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <select value={movForm.customerId}
+                        onChange={e => setMovForm(p => ({ ...p, customerId: e.target.value }))}
+                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500">
+                        <option value="">Sem cliente vinculado</option>
+                        {customers.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Preço unitário */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                      Preço unitário de venda (R$)
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="number" step="0.01" min="0"
+                        value={movForm.unitPrice}
+                        onChange={e => setMovForm(p => ({ ...p, unitPrice: e.target.value }))}
+                        placeholder={selectedItem.salePrice ? String(selectedItem.salePrice) : '0,00'}
+                        className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Deixe em branco para usar o preço cadastrado ({BR(selectedItem.salePrice)})
+                    </p>
+                  </div>
+
+                  {/* ✅ Preview da venda */}
+                  {salePreview > 0 && (
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-3 border border-teal-100 dark:border-teal-800 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-teal-700 dark:text-teal-300">Total da venda</span>
+                        <span className="text-sm font-bold text-teal-700 dark:text-teal-300">{BR(salePreview)}</span>
+                      </div>
+                      {commissionPreview > 0 && selectedBarber && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-teal-600 dark:text-teal-400">
+                            Comissão {selectedBarber.name} ({selectedBarber.commissionPercentage || 40}%)
+                          </span>
+                          <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">{BR(commissionPreview)}</span>
+                        </div>
+                      )}
+                      <p className="text-[11px] text-teal-500 mt-1">
+                        💰 Será registrado automaticamente no financeiro
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Motivo */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Motivo (opcional)</label>
-                <input type="text" value={movForm.reason} onChange={e => setMovForm(p => ({ ...p, reason: e.target.value }))}
-                  placeholder="Ex: Compra fornecedor, uso no serviço..."
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  {movForm.type === 'out' ? 'Observações (opcional)' : 'Motivo (opcional)'}
+                </label>
+                <input type="text" value={movForm.reason}
+                  onChange={e => setMovForm(p => ({ ...p, reason: e.target.value }))}
+                  placeholder={movForm.type === 'in' ? 'Ex: Compra fornecedor...' : movForm.type === 'out' ? 'Ex: Venda balcão...' : 'Ex: Correção de inventário...'}
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500" />
               </div>
             </div>
 
             <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
               <button onClick={() => setShowMovementModal(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                Cancelar
-              </button>
-              <button onClick={handleMovement} disabled={saving}
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancelar</button>
+              <button onClick={handleMovement} disabled={saving || (movForm.type === 'out' && !movForm.barberId)}
                 className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Confirmar
+                {movForm.type === 'out' ? 'Confirmar Venda' : 'Confirmar'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL: Histórico ── */}
+      {/* MODAL: Histórico */}
       {showHistoryModal && selectedItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl max-h-[80vh] flex flex-col">
@@ -492,24 +625,38 @@ export default function EstoquePage() {
               {movements.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">Nenhum movimento registrado</p>
               ) : movements.map((m: any) => {
-                const icons: Record<string, React.ReactNode> = {
-                  in:         <ArrowUpCircle className="w-4 h-4 text-emerald-500" />,
-                  out:        <ArrowDownCircle className="w-4 h-4 text-red-500" />,
-                  adjustment: <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
-                };
-                const labels: Record<string, string> = { in: 'Entrada', out: 'Saída', adjustment: 'Ajuste' };
+                const isOut = m.type === 'out';
+                const isIn  = m.type === 'in';
                 return (
-                  <div key={m.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
-                    {icons[m.type]}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">
-                        {labels[m.type]} — <span className="font-bold">{m.quantity} {selectedItem.unit}</span>
-                      </p>
-                      {m.reason && <p className="text-xs text-gray-400">{m.reason}</p>}
+                  <div key={m.id} className={`p-3 rounded-xl border ${
+                    isOut ? 'bg-teal-50 dark:bg-teal-900/10 border-teal-100 dark:border-teal-900/30'
+                          : isIn ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30'
+                                 : 'bg-gray-50 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {isIn  && <ArrowUpCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />}
+                      {isOut && <ShoppingCart   className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />}
+                      {!isIn && !isOut && <SlidersHorizontal className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-800 dark:text-white">
+                            {isIn ? 'Entrada' : isOut ? 'Venda' : 'Ajuste'} —{' '}
+                            <span className="font-bold">{m.quantity} {selectedItem.unit}</span>
+                          </p>
+                          <p className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                            {new Date(m.createdAt).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        {/* ✅ Mostrar barbeiro e valor na venda */}
+                        {isOut && m.barber?.name && (
+                          <p className="text-xs text-teal-600 dark:text-teal-400 font-medium mt-0.5">
+                            👤 {m.barber.name}
+                            {m.unitPrice && ` · ${BR(Number(m.unitPrice) * m.quantity)}`}
+                          </p>
+                        )}
+                        {m.reason && <p className="text-xs text-gray-400 mt-0.5">{m.reason}</p>}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 whitespace-nowrap">
-                      {new Date(m.createdAt).toLocaleDateString('pt-BR')}
-                    </p>
                   </div>
                 );
               })}
